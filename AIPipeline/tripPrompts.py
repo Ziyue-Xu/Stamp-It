@@ -38,8 +38,8 @@ UNDERSTANDING THE STRUCTURED OUTPUT FORMAT:
 - Trip Title: A concise title for the trip that captures the essence of the trip.
 - Start Date: The start date of the trip in YYYY-MM-DD format taken from the JSON.
 - End Date: The end date of the trip in YYYY-MM-DD format taken from the JSON.
-- Start City: The city where the trip starts. If a start city is provided in the JSON, you should ensure that the trip starts in that city. 
-- End City: The city where the trip ends. If an end city is provided in the JSON, you should ensure that the trip ends in that city. Since the input will not include the exact start location, use a dummy location name such as "End Location" for the last activity of the trip. Give the users appropriate travel time to get to their end location. Create a dummy activity for the last day of the trip that is a travel activity to the end location. This travel activity should be broad, and not include specific travel options.
+- Start City: Optional. If a start city is provided in the JSON, ensure that the trip starts there. If it is absent or empty, infer a practical starting location from the country, dates, and itinerary without inventing a user-provided city.
+- End City: Optional. If an end city is provided in the JSON, ensure that the trip ends there. If it is absent or empty, do not invent a required end city; choose a logical endpoint for the itinerary and avoid treating it as a user constraint. If an end city is provided, create a broad final travel activity to it rather than a specific travel option.
 - Destinations: A list of the main cities or regions visited during the trip. You should suggest a reasonable number of destinations based on the trip duration and pace. 
 - Timeline: For each activity, do not provide multiple options in the same time slot. Instead, provide a single activity that best balances the preferences of the group. 
 - Meals: Do not repeat restaurants unless there are no other convenient and well rated options available. Ensure that the restaurants suggested have options for all dietary restrictions present in the group.
@@ -61,6 +61,7 @@ HANDLING WARNINGS:
 CONSIDERATIONS:
 - Consider the availability of attractions and restaurants when suggesting activities. Consider seasons, holidays, and local events that may affect the availability of certain activities or restaurants.
 - Consider closing times and opening times of attractions and restaurants when suggesting activities. Ensure that the suggested activities are open during the time they are scheduled, and use google maps to verify opening and closing times.
+- If the preference JSON is empty, you should stil generate a trip plan that is reasonable for the country and time of year.
 """
 
 splitPrompt = """
@@ -93,8 +94,8 @@ UNDERSTANDING THE STRUCTURED OUTPUT FORMAT:
 - Trip Title: A concise title for the trip that captures the essence of the trip.
 - Start Date: The start date of the trip in YYYY-MM-DD format taken from the JSON.
 - End Date: The end date of the trip in YYYY-MM-DD format taken from the JSON.
-- Start City: The city where the trip starts. If a start city is provided in the JSON, you should ensure that the trip starts in that city. 
-- End City: The city where the trip ends. If an end city is provided in the JSON, you should ensure that the trip ends in that city. Since the input will not include the exact start location, use a dummy location name such as "End Location" for the last activity of the trip. Give the users appropriate travel time to get to their end location. Create a dummy activity for the last day of the trip that is a travel activity to the end location. This travel activity should be broad, and not include specific travel options.
+- Start City: Optional. If a start city is provided in the JSON, ensure that the trip starts there. If it is absent or empty, infer a practical starting location from the country, dates, and itinerary without inventing a user-provided city.
+- End City: Optional. If an end city is provided in the JSON, ensure that the trip ends there. If it is absent or empty, do not invent a required end city; choose a logical endpoint for the itinerary and avoid treating it as a user constraint. If an end city is provided, create a broad final travel activity to it rather than a specific travel option.
 - Destinations: A list of the main cities or regions visited during the trip. You should suggest a reasonable number of destinations based on the trip duration and pace. 
 - Timeline: For each activity, do not provide multiple options in the same time slot. Instead, provide a single activity that best balances the preferences of the group. 
 - Meals: Do not repeat restaurants unless there are no other convenient and well rated options available. Ensure that the restaurants suggested have options for all dietary restrictions present in the group.

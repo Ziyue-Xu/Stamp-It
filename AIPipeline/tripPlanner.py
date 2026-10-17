@@ -214,7 +214,6 @@ if __name__ == "__main__":
     # Load the family JSON data
     with open("family_1.json", "r", encoding="utf-8") as family_file:
         familyJSON = json.load(family_file)
-    """
         # Testing block for initial trip plan generation    
         start_time = time.perf_counter()
 
@@ -242,3 +241,4 @@ if __name__ == "__main__":
     print(f"Response time: {elapsed_time:.2f} seconds")
     with open("split_trip.json", "w", encoding="utf-8") as output_file:
         output_file.write(split_trip_plan)
+    """

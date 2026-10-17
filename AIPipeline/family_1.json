@@ -5,8 +5,6 @@
     "endDate": "10/20/2026",
     "startTime": "8:00 PM",
     "endTime": "6:00 PM",
-    "startCity": "Tokyo",
-    "endCity": "Kyoto",
     "users": [{
         "userProfile": {"userId": "U001", "name": "Alice", "email": "alice@example.com", "emailVerified": true, "organizer": true},
         "userTravelProfile": {

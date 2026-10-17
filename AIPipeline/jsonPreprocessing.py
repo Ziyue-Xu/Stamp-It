@@ -3,12 +3,12 @@ import json
 def process_master_preferences(
     user_jsons,
     country,
-    startDate,
-    endDate,
-    startTime,
-    endTime,
-    startCity,
-    endCity
+    startDate=None,
+    endDate=None,
+    startTime=None,
+    endTime=None,
+    startCity=None,
+    endCity=None
 ):
     master_json = {
         "country": country,
@@ -16,11 +16,13 @@ def process_master_preferences(
         "endDate": endDate,
         "startTime": startTime,
         "endTime": endTime,
-        "startCity": startCity,
-        "endCity": endCity,
         "groupMembers": [],
         "userTravelProfile": {}
     }
+    if startCity:
+        master_json["startCity"] = startCity
+    if endCity:
+        master_json["endCity"] = endCity
 
     if not user_jsons:
         return master_json

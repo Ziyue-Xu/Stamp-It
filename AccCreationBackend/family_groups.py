@@ -348,7 +348,7 @@ class LocalFamilyStore:
             trip_details.get("end_time"),
             trip_details.get("start_city"),
             trip_details.get("end_city"),
-            allow_missing_cities=False,
+            allow_missing_cities=True,
         )
         self._write_groups(groups)
         return group
@@ -381,7 +381,7 @@ class LocalFamilyStore:
                 end_time=trip_details.get("end_time"),
                 start_city=trip_details.get("start_city"),
                 end_city=trip_details.get("end_city"),
-                allow_missing_cities=False,
+                allow_missing_cities=True,
             )
         groups[key] = group
         self._write_groups(groups)
@@ -473,7 +473,7 @@ def validate_trip_details(
     end_time,
     start_city="",
     end_city="",
-    allow_missing_cities=False,
+    allow_missing_cities=True,
 ):
     if not isinstance(country, str):
         raise ValueError("Enter the country your family is travelling to.")
@@ -542,10 +542,10 @@ def validate_trip_details(
 def collect_trip_details():
     while True:
         country = input("Country you are travelling to: ").strip()
-        start_city = input("Travel start city: ").strip()
+        start_city = input("Travel start city (optional): ").strip()
         start_date = input("Travel start date (YYYY-MM-DD): ").strip()
         start_time = input("Travel start time (24-hour HH:MM): ").strip()
-        end_city = input("Travel end city: ").strip()
+        end_city = input("Travel end city (optional): ").strip()
         end_date = input("Travel end date (YYYY-MM-DD): ").strip()
         end_time = input("Travel end time (24-hour HH:MM): ").strip()
         try:
@@ -557,7 +557,7 @@ def collect_trip_details():
                 end_time,
                 start_city,
                 end_city,
-                allow_missing_cities=False,
+                allow_missing_cities=True,
             )
         except ValueError as error:
             print(f"{error} Please enter the trip details again.")
