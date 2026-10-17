@@ -57,6 +57,7 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
           transform: `scale(${k})`,
           marginLeft: -DESIGN_W / 2,
         }}
+      >
 
         <div className="welcome-collage">
           <Stamp placed color="var(--pink)" x={22} y={26} w={128} h={158} rot={-1} depth={0.5} delay={0.1}>
@@ -82,7 +83,7 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
           </Stamp>
         </div>
 
-
+   
         <div className="welcome-bottom">
           <h1 className="welcome-title rise" style={{ "--d": "1.2s" }}>
             Travel,
@@ -94,12 +95,12 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
           </div>
 
           <div className="welcome-buttons rise" style={{ "--d": "1.5s" }}>
-    
+       
             <button type="button" className="btn btn-primary" onClick={onStartTrip}>
               Start a new trip
             </button>
 
-  
+   
             <button type="button" className="btn btn-secondary" onClick={onJoinTrip}>
               Join with a code
             </button>

@@ -36,10 +36,12 @@ function App() {
 
   const [screen, setScreen] = useState("loading");
 
-
+ 
   const [destinationId, setDestinationId] = useState(null);
 
+
   const [trip, setTrip] = useState(null);
+
 
 
   const [profile, setProfile] = useState(null);
@@ -47,11 +49,12 @@ function App() {
 
   const [trips, setTrips] = useState([]);
 
-
+ 
   const [savedAnswers, setSavedAnswers] = useState(null);
 
 
   const [hasTripPreferences, setHasTripPreferences] = useState(false);
+
 
   const [plan, setPlan] = useState(null);
 
@@ -86,7 +89,6 @@ function App() {
     }
   }
 
-
   useEffect(() => {
     async function start() {
       const savedProfile = await getProfile();
@@ -99,7 +101,6 @@ function App() {
     }
     start();
   }, []);
-
 
   async function goHome() {
     if (profile) {
@@ -116,9 +117,14 @@ function App() {
     setScreen("create");
   }
 
-
+  
   function handleJoinTrip() {
     setScreen("join");
+  }
+
+
+  function handleLogin() {
+    setScreen("login");
   }
 
 
@@ -126,7 +132,7 @@ function App() {
     setDestinationId(id);
   }
 
-
+ 
   async function handleCreateTrip({
     startDate,
     endDate,
@@ -154,6 +160,7 @@ function App() {
     setDestinationId(trip.destinationId);
     setScreen("editTrip");
   }
+
 
   function handleCancelEditTrip() {
     setDestinationId(trip.destinationId);
@@ -197,7 +204,6 @@ function App() {
     }
   }
 
-
   async function handleTripFound(foundTrip) {
     if (profile) {
       const updatedTrip = await joinTrip(foundTrip, profile);
@@ -233,7 +239,6 @@ function App() {
     }
   }
 
-
   function handleCancelPreferences() {
     setSavedAnswers(null);
     setScreen("trip");
@@ -255,6 +260,7 @@ function App() {
     setScreen("trip");
   }
 
+
   function handleOpenAccount() {
     setScreen("account");
   }
@@ -266,6 +272,7 @@ function App() {
     setProfile(updated);
   }
 
+ 
   async function handleSignOut() {
     await clearProfile();
     setProfile(null);
@@ -276,7 +283,6 @@ function App() {
     setScreen("welcome");
   }
 
-
   async function handleGeneratePlan() {
     const result = await generateGroupPlan(trip.familyId, profile.userId, trip);
     if (result.plan) {
@@ -285,7 +291,6 @@ function App() {
     }
     return result;
   }
-
 
   const colors = {
     "--paper": theme.paper,
@@ -305,10 +310,18 @@ function App() {
     <div className="app" style={colors}>
 
       {screen === "welcome" && (
-        <WelcomeScreen onStartTrip={handleNewTrip} onJoinTrip={handleJoinTrip} />
+        <WelcomeScreen
+          onStartTrip={handleNewTrip}
+          onJoinTrip={handleJoinTrip}
+          onLogin={handleLogin}
+        />
       )}
 
-      {/* SCREEN: Create trip (pick a destination + dates) */}
+      {screen === "login" && (
+        <SignUpScreen mode="login" onSave={handleSignedIn} onBack={goHome} />
+      )}
+
+
       {screen === "create" && (
         <CreateTripScreen
           selectedId={destinationId}
@@ -334,7 +347,6 @@ function App() {
         <ShareCodeScreen trip={trip} onContinue={handleShareContinue} />
       )}
 
-
       {screen === "join" && (
         <JoinCodeScreen onFound={handleTripFound} onBack={goHome} />
       )}
@@ -348,6 +360,7 @@ function App() {
         />
       )}
 
+     
       {screen === "preferences" && profile && trip && (
         <PreferencesScreen
           profile={profile}
@@ -383,10 +396,16 @@ function App() {
 
    
       {screen === "plan" && plan && trip && (
-        <PlanScreen plan={plan} trip={trip} onBack={() => setScreen("trip")} />
+        <PlanScreen
+          plan={plan}
+          trip={trip}
+          profile={profile}
+          onPlanChange={setPlan}
+          onBack={() => setScreen("trip")}
+        />
       )}
 
-
+  
       {screen === "trip" && trip && profile && (
         <TripScreen
           trip={trip}
@@ -402,4 +421,4 @@ function App() {
   );
 }
 
-export default App;
+export default App
