@@ -29,8 +29,8 @@ export const travelFamiliesSchema: CollectionSchema = {
     { name: 'endDate', storage: 'text', interpretation: 'plain', required: true },
     { name: 'startTime', storage: 'text', interpretation: 'plain', required: true },
     { name: 'endTime', storage: 'text', interpretation: 'plain', required: true },
-    { name: 'startCity', storage: 'text', interpretation: 'plain', required: true },
-    { name: 'endCity', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'startCity', storage: 'text', interpretation: 'plain', required: false },
+    { name: 'endCity', storage: 'text', interpretation: 'plain', required: false },
     { name: 'users', storage: 'text', interpretation: { kind: 'json' }, required: true },
   ],
   uniqueOn: ['familyCode'],
@@ -41,6 +41,7 @@ export const travelPlansSchema: CollectionSchema = {
   name: 'travel-plans',
   columns: [
     { name: 'familyCode', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'format', storage: 'text', interpretation: 'plain', required: false },
     { name: 'plan', storage: 'text', interpretation: { kind: 'json' }, required: true },
   ],
   uniqueOn: ['familyCode'],

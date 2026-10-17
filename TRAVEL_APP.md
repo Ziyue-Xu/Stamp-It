@@ -34,6 +34,20 @@ store only `userId`, `name`, and `email`; travel preferences use the template's
 `activityPopularity` key. The Worker adapts the existing travel UI's request
 and response format at the API boundary, and normalizes older family records
 when it reads them. The first user in `users` is the trip creator.
+Arrival and departure cities are optional when creating a trip. If either is
+left blank, the itinerary planner chooses a suitable city within the selected
+country.
+
+Trip detail edits are saved to the family record and clear the existing
+itinerary so it can be regenerated with the updated trip details. Organizers
+can delete trips, which removes the family and saved-itinerary records and
+clears each member's trip reference. Other members can leave; leaving removes
+that member and their preferences from the family JSON and clears their trip
+reference. The organizer cannot leave their own trip.
+
+Trip members can view the saved itinerary. Changes made to itinerary stops
+are saved to the private `travel-plans` collection, and organizers can
+regenerate the itinerary to replace edits with a fresh plan.
 
 ## Configure the AI trip planner
 

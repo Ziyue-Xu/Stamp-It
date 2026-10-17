@@ -11,9 +11,12 @@ import { jsonSchema, tool } from 'ai'
 import type { ToolSet } from 'ai'
 import { z } from 'zod/v4'
 import { BUILT_IN_TOOLS, applyAiToolDefaults } from 'deepspace/worker'
-import type { ToolSchema, CollectionSchema } from 'deepspace/worker'
+import type { AgentToolContext, ToolSchema, CollectionSchema } from 'deepspace/worker'
+import { schemas } from '../schemas.js'
+import type { Env } from '../../worker.js'
 
 type ToolExecutor = (toolName: string, params: Record<string, unknown>) => Promise<unknown>
+type AppToolContext = AgentToolContext<Env>
 
 const ALLOWED_TOOL_NAMES = [
   'schema.list',
@@ -77,7 +80,7 @@ export function buildSystemPrompt(appName: string, schemas: CollectionSchema[]):
 // Tool definitions
 // ============================================================================
 
-export function buildTools(executor: ToolExecutor): ToolSet {
+export function buildTools(executor: ToolExecutor, context?: AppToolContext): ToolSet {
   const tools: ToolSet = {}
 
   for (const def of BUILT_IN_TOOLS) {
@@ -94,7 +97,85 @@ export function buildTools(executor: ToolExecutor): ToolSet {
     })
   }
 
+  if (context) {
+    tools.clear_all_app_records = tool({
+      description:
+        'Irreversibly delete every record from every collection declared by this app. This includes all users, families, settings, and travel data. Requires the exact confirmation text.',
+      inputSchema: z.object({ confirmation: z.literal('DELETE ALL APP DATA') }),
+      execute: async () => deleteAllAppRecords(context),
+    })
+  }
+
   return tools
+}
+
+async function deleteAllAppRecords(context: AppToolContext): Promise<{ deleted: number }> {
+  const { env, userId } = context
+  if (!env.OWNER_USER_ID || userId !== env.OWNER_USER_ID) {
+    throw new Error('Only the DeepSpace app owner can delete all app records.')
+  }
+
+  let deleted = 0
+  for (const schema of schemas) {
+    while (true) {
+      const records = await executeInternalRecordTool(env, 'records.query', {
+        collection: schema.name,
+        limit: 100,
+        offset: 0,
+      })
+      if (!isRecord(records) || !Array.isArray(records.records)) {
+        throw new Error(`Could not enumerate records in "${schema.name}".`)
+      }
+      if (records.records.length === 0) break
+
+      for (const record of records.records) {
+        if (!isRecord(record) || typeof record.recordId !== 'string' || !record.recordId) {
+          throw new Error(`DeepSpace returned an invalid record in "${schema.name}".`)
+        }
+        await executeInternalRecordTool(env, 'records.delete', {
+          collection: schema.name,
+          recordId: record.recordId,
+        })
+        deleted += 1
+      }
+    }
+  }
+
+  return { deleted }
+}
+
+async function executeInternalRecordTool(
+  env: Env,
+  name: string,
+  params: Record<string, unknown>,
+): Promise<unknown> {
+  const room = env.RECORD_ROOMS.get(env.RECORD_ROOMS.idFromName(`app:${env.DEEPSPACE_APP_ID}`))
+  const response = await room.fetch(
+    new Request('https://internal/api/tools/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': env.OWNER_USER_ID,
+        'X-App-Action': 'true',
+      },
+      body: JSON.stringify({ tool: name, params }),
+    }),
+  )
+  const result: unknown = await response.json()
+  if (
+    !response.ok ||
+    !isRecord(result) ||
+    result.success !== true ||
+    !isRecord(result.data)
+  ) {
+    const detail = isRecord(result) && typeof result.error === 'string' ? `: ${result.error}` : ''
+    throw new Error(`DeepSpace ${name} failed${detail}`)
+  }
+  return result.data
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 // ============================================================================

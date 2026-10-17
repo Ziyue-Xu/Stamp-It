@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Hono } from 'hono'
 import type { Env } from '../../worker.js'
+import { travelFamiliesSchema, travelPlansSchema } from '../schemas/travel-schema.js'
 import { registerTravelRoutes } from './travel-routes.js'
 
 function testApp() {
@@ -25,6 +26,10 @@ function testApp() {
         }
         if (tool === 'records.create' && previous) {
           return Response.json({ success: false, error: 'Record already exists.' })
+        }
+        if (tool === 'records.delete') {
+          objects.delete(key)
+          return Response.json({ success: true, data: { recordId: params.recordId } })
         }
         if (tool === 'records.create' || tool === 'records.update') {
           objects.set(key, JSON.stringify(params.data))
@@ -353,7 +358,7 @@ describe('Auth0 travel routes', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(await response.json()).toEqual(itinerary)
     expect(objects.get(`travel-plans/${familyId}`)).toBe(
-      JSON.stringify({ familyCode: familyId, plan: itinerary }),
+      JSON.stringify({ familyCode: familyId, format: 'backend', plan: itinerary }),
     )
     for (const cookie of [sessionCookie, memberCookie]) {
       const savedPlan = await request(`/travel/families/${familyId}/plan`, {
@@ -694,5 +699,305 @@ describe('Auth0 travel routes', () => {
     })
     expect(objects.has('travel-users/auth0|new-user')).toBe(false)
     expect(verify.headers.get('set-cookie')).not.toContain('travel_session=')
+  })
+
+  it('creates a trip when arrival and departure cities are omitted', async () => {
+    expect(
+      travelFamiliesSchema.columns
+        .filter((column) => column.name === 'startCity' || column.name === 'endCity')
+        .every((column) => column.required === false),
+    ).toBe(true)
+
+    const { objects, request } = testApp()
+    const auth0Fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({}))
+      .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          sub: 'auth0|creator',
+          email: 'creator@example.com',
+          email_verified: true,
+        }),
+      )
+    vi.stubGlobal('fetch', auth0Fetch)
+
+    const sessionCookie = await signIn(request, 'Creator', 'creator@example.com')
+    const create = await request('/families', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-16',
+      }),
+    })
+
+    expect(create.status).toBe(200)
+    const { family_code: familyCode } = (await create.json()) as { family_code: string }
+    expect(JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}')).toMatchObject({
+      country: 'Japan',
+      startCity: '',
+      endCity: '',
+    })
+  })
+
+  it('lets a member leave and removes their preferences from the family JSON', async () => {
+    const { objects, request } = testApp()
+    const familyCode = '4812'
+    const creatorId = 'auth0|creator'
+    const memberId = 'auth0|member'
+    const users = [
+      {
+        userId: creatorId,
+        name: 'Creator',
+        email: 'creator@example.com',
+        emailVerified: true,
+        avatar: 'taj',
+        families: [familyCode],
+      },
+      {
+        userId: memberId,
+        name: 'Member',
+        email: 'member@example.com',
+        emailVerified: true,
+        avatar: 'fuji',
+        families: [familyCode],
+      },
+    ]
+    for (const user of users) objects.set(`travel-users/${user.userId}`, JSON.stringify(user))
+    objects.set(
+      `travel-families/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-16',
+        startTime: '09:00',
+        endTime: '18:00',
+        startCity: '',
+        endCity: '',
+        users: [
+          {
+            userProfile: { userId: creatorId, name: 'Creator', email: 'creator@example.com' },
+            userTravelProfile: { budgetTier: { value: 2, priority: 'critical' } },
+          },
+          {
+            userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+            userTravelProfile: { dietaryRestrictions: { value: ['vegan'], priority: 'weak_link' } },
+          },
+        ],
+      }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: memberId,
+            email: 'member@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const sessionCookie = await signIn(request, 'Member', 'member@example.com')
+
+    const response = await request(`/families/${familyCode}/members/${encodeURIComponent(memberId)}`, {
+      method: 'DELETE',
+      headers: { Origin: 'http://localhost', Cookie: sessionCookie },
+    })
+
+    expect(response.status).toBe(200)
+    const family = JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}') as {
+      users: Array<{ userProfile: { userId: string }; userTravelProfile: Record<string, unknown> }>
+    }
+    expect(family.users).toHaveLength(1)
+    expect(family.users[0]?.userProfile.userId).toBe(creatorId)
+    expect(family.users[0]?.userTravelProfile).toHaveProperty('budgetTier')
+    expect(JSON.parse(objects.get(`travel-users/${memberId}`) ?? '{}').families).toEqual([])
+  })
+
+  it('deletes a trip and its saved plan for the creator, and removes all member references', async () => {
+    const { objects, request } = testApp()
+    const familyCode = '5724'
+    const creatorId = 'auth0|creator'
+    const memberId = 'auth0|member'
+    for (const user of [
+      {
+        userId: creatorId,
+        name: 'Creator',
+        email: 'creator@example.com',
+        emailVerified: true,
+        avatar: 'taj',
+        families: [familyCode],
+      },
+      {
+        userId: memberId,
+        name: 'Member',
+        email: 'member@example.com',
+        emailVerified: true,
+        avatar: 'fuji',
+        families: [familyCode, '1010'],
+      },
+    ]) {
+      objects.set(`travel-users/${user.userId}`, JSON.stringify(user))
+    }
+    objects.set(
+      `travel-families/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-16',
+        startTime: '09:00',
+        endTime: '18:00',
+        startCity: '',
+        endCity: '',
+        users: [
+          {
+            userProfile: { userId: creatorId, name: 'Creator', email: 'creator@example.com' },
+            userTravelProfile: {},
+          },
+          {
+            userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+            userTravelProfile: { tripPace: { value: 0.4, priority: 'flexible' } },
+          },
+        ],
+      }),
+    )
+    objects.set(
+      `travel-plans/${familyCode}`,
+      JSON.stringify({ familyCode, format: 'backend', plan: { trip_title: 'Saved plan' } }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: creatorId,
+            email: 'creator@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const sessionCookie = await signIn(request, 'Creator', 'creator@example.com')
+
+    const response = await request(`/families/${familyCode}`, {
+      method: 'DELETE',
+      headers: { Origin: 'http://localhost', Cookie: sessionCookie },
+    })
+
+    expect(response.status).toBe(200)
+    expect(objects.has(`travel-families/${familyCode}`)).toBe(false)
+    expect(objects.has(`travel-plans/${familyCode}`)).toBe(false)
+    expect(JSON.parse(objects.get(`travel-users/${creatorId}`) ?? '{}').families).toEqual([])
+    expect(JSON.parse(objects.get(`travel-users/${memberId}`) ?? '{}').families).toEqual(['1010'])
+  })
+
+  it('stores edited itinerary JSON for trip members and serves it back to the UI', async () => {
+    expect(travelPlansSchema.columns).toContainEqual({
+      name: 'format',
+      storage: 'text',
+      interpretation: 'plain',
+      required: false,
+    })
+
+    const { objects, request } = testApp()
+    const familyCode = '6347'
+    const memberId = 'auth0|member'
+    objects.set(
+      `travel-users/${memberId}`,
+      JSON.stringify({
+        userId: memberId,
+        name: 'Member',
+        email: 'member@example.com',
+        emailVerified: true,
+        avatar: 'taj',
+        families: [familyCode],
+      }),
+    )
+    objects.set(
+      `travel-families/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-16',
+        startTime: '09:00',
+        endTime: '18:00',
+        startCity: '',
+        endCity: '',
+        users: [
+          {
+            userProfile: { userId: 'auth0|creator', name: 'Creator', email: 'creator@example.com' },
+            userTravelProfile: {},
+          },
+          {
+            userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+            userTravelProfile: {},
+          },
+        ],
+      }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: memberId,
+            email: 'member@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const sessionCookie = await signIn(request, 'Member', 'member@example.com')
+    const editedPlan = {
+      title: 'Japan plans',
+      subtitle: 'Tokyo',
+      startDate: '2027-03-14',
+      endDate: '2027-03-16',
+      days: [
+        {
+          dayNumber: 1,
+          date: '2027-03-14',
+          city: 'Tokyo',
+          theme: 'Arrival',
+          items: [{ id: 'stop-1', type: 'activity', title: 'Visit a shrine' }],
+        },
+      ],
+    }
+
+    const saveResponse = await request(`/families/${familyCode}/plan`, {
+      method: 'PUT',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ updatedBy: memberId, plan: editedPlan }),
+    })
+    const readResponse = await request(`/families/${familyCode}/plan`, {
+      headers: { Cookie: sessionCookie },
+    })
+
+    expect(saveResponse.status).toBe(200)
+    expect(objects.get(`travel-plans/${familyCode}`)).toBe(
+      JSON.stringify({ familyCode, format: 'travel-app', plan: editedPlan }),
+    )
+    expect(readResponse.status).toBe(200)
+    expect(await readResponse.json()).toEqual({ format: 'travel-app', plan: editedPlan })
   })
 })

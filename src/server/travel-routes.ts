@@ -125,6 +125,27 @@ function isGeneratedTripPlan(value: unknown): value is Record<string, unknown> {
   )
 }
 
+function isEditableTravelPlan(value: unknown): value is Record<string, unknown> {
+  return (
+    isRecord(value) &&
+    typeof value.title === 'string' &&
+    typeof value.subtitle === 'string' &&
+    typeof value.startDate === 'string' &&
+    typeof value.endDate === 'string' &&
+    Array.isArray(value.days) &&
+    value.days.every(
+      (day) =>
+        isRecord(day) &&
+        typeof day.dayNumber === 'number' &&
+        typeof day.date === 'string' &&
+        typeof day.city === 'string' &&
+        typeof day.theme === 'string' &&
+        Array.isArray(day.items) &&
+        day.items.every((item) => isRecord(item) && typeof item.id === 'string'),
+    )
+  )
+}
+
 function jsonError(
   c: Context<AppContext>,
   error: string,
@@ -366,9 +387,14 @@ async function executeRecordTool<T>(
       body: JSON.stringify({ tool, params }),
     }),
   )
-  if (!response.ok) throw new Error(`DeepSpace record operation failed (${response.status}).`)
-  const result = (await response.json()) as ActionResult<T>
+  let result: ActionResult<T>
+  try {
+    result = (await response.json()) as ActionResult<T>
+  } catch {
+    throw new Error(`DeepSpace record operation returned an invalid response (${response.status}).`)
+  }
   if (!result.success) throw new Error(`DeepSpace record operation failed: ${result.error}`)
+  if (!response.ok) throw new Error(`DeepSpace record operation failed (${response.status}).`)
   return result
 }
 
@@ -434,6 +460,15 @@ async function createStored(env: Env, key: string, value: unknown): Promise<void
     collection,
     recordId,
     data: value,
+  })
+}
+
+async function deleteStored(env: Env, key: string): Promise<void> {
+  const { collection, recordId } = keyParts(key)
+  if (!(await getStored(env, key))) return
+  await executeRecordTool<MutateActionData>(env, 'records.delete', {
+    collection,
+    recordId,
   })
 }
 
@@ -1031,6 +1066,61 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     }
     Object.assign(family, details)
     await persistFamily(c.env, family)
+    await deleteStored(c.env, planKey(code))
+    return c.json({ success: true })
+  })
+
+  app.delete('/families/:familyId', async (c) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+    const familyCode = c.req.param('familyId')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const family = await getFamily(c.env, familyCode)
+    if (!family) return jsonError(c, 'Family not found.', 404)
+    if (family.users[0]?.userProfile.userId !== result.session.userId) {
+      return jsonError(c, 'Only the trip creator can delete the trip.', 403)
+    }
+
+    await deleteStored(c.env, familyKey(familyCode))
+    await deleteStored(c.env, planKey(familyCode))
+    await Promise.all(
+      family.users.map(async (member) => {
+        const user = await getStored<TravelUser>(c.env, userKey(member.userProfile.userId))
+        if (!user) return
+        user.families = user.families.filter((code) => code !== familyCode)
+        await putStored(c.env, userKey(user.userId), user)
+      }),
+    )
+    return c.json({ success: true })
+  })
+
+  app.delete('/families/:familyId/members/:userId', async (c) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+    const familyCode = c.req.param('familyId')
+    const userId = c.req.param('userId')
+    if (!validFamilyCode(familyCode) || userId !== result.session.userId) {
+      return jsonError(c, 'Not authorized.', 401)
+    }
+    const family = await getFamily(c.env, familyCode)
+    if (!family) return jsonError(c, 'Family not found.', 404)
+    if (family.users[0]?.userProfile.userId === userId) {
+      return jsonError(c, "The trip creator can't leave. Delete the trip instead.", 403)
+    }
+    const memberIndex = family.users.findIndex(
+      (member) => member.userProfile.userId === userId,
+    )
+    if (memberIndex < 0) return jsonError(c, 'You are not a member of this family.', 403)
+    family.users.splice(memberIndex, 1)
+    await persistFamily(c.env, family)
+
+    const user = await getStored<TravelUser>(c.env, userKey(userId))
+    if (user) {
+      user.families = user.families.filter((code) => code !== familyCode)
+      await putStored(c.env, userKey(userId), user)
+    }
     return c.json({ success: true })
   })
 
@@ -1161,7 +1251,11 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       return jsonError(c, 'The trip planning service returned an invalid plan.', 502)
     }
     try {
-      await putStored(c.env, planKey(familyCode), { familyCode, plan: response.plan })
+      await putStored(c.env, planKey(familyCode), {
+        familyCode,
+        format: 'backend',
+        plan: response.plan,
+      })
     } catch (error) {
       console.error('Trip plan persistence failed.', error instanceof Error ? error.message : String(error))
       return jsonError(c, 'The generated plan could not be saved.', 500)
@@ -1177,21 +1271,53 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     const access = await requireFamilyMember(c, familyCode, result.session.userId)
     if ('response' in access) return access.response
 
-    const stored = await getStored<{ familyCode: string; plan: unknown }>(
+    const stored = await getStored<{ familyCode: string; format?: string; plan: unknown }>(
       c.env,
       planKey(familyCode),
     )
     if (!stored) return jsonError(c, 'No saved trip plan was found.', 404)
-    if (stored.familyCode !== familyCode || !isGeneratedTripPlan(stored.plan)) {
+    if (
+      stored.familyCode !== familyCode ||
+      (stored.format === 'travel-app'
+        ? !isEditableTravelPlan(stored.plan)
+        : !isGeneratedTripPlan(stored.plan))
+    ) {
       console.error('Stored trip plan has an invalid shape.')
       return jsonError(c, 'The saved trip plan is invalid.', 500)
     }
+    if (stored.format === 'travel-app') {
+      return c.json({ format: stored.format, plan: stored.plan })
+    }
     return c.json(stored.plan)
+  }
+  const updateSavedPlan = async (c: Context<AppContext>) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+    const familyCode = c.req.param('familyId')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const access = await requireFamilyMember(c, familyCode, result.session.userId)
+    if ('response' in access) return access.response
+    const body = await readJsonBody(c)
+    if (!body || !isEditableTravelPlan(body.plan)) {
+      return jsonError(c, 'Expected a valid itinerary.', 400)
+    }
+    if (JSON.stringify(body.plan).length > 128_000) {
+      return jsonError(c, 'The itinerary is too large to save.', 400)
+    }
+    await putStored(c.env, planKey(familyCode), {
+      familyCode,
+      format: 'travel-app',
+      plan: body.plan,
+    })
+    return c.json({ success: true })
   }
   app.post('/families/:familyId/plan', generatePlan)
   app.get('/families/:familyId/plan', getSavedPlan)
+  app.put('/families/:familyId/plan', updateSavedPlan)
   app.get('/families/:familyId/plan/:interactionToken', pollPlan)
   app.post('/travel/families/:familyId/plan', generatePlan)
   app.get('/travel/families/:familyId/plan', getSavedPlan)
+  app.put('/travel/families/:familyId/plan', updateSavedPlan)
   app.get('/travel/families/:familyId/plan/:interactionToken', pollPlan)
 }

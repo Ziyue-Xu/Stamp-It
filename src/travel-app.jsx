@@ -14,8 +14,10 @@ import { findDestination } from '../my-travel-app/src/data/destinations.js'
 import { hasAnyAnswer, answersFromTravelProfile } from '../my-travel-app/src/data/preferenceQuestions.js'
 import {
   createTrip,
+  deleteTrip,
   getCreatorId,
   getMyTrips,
+  leaveTrip,
   joinTrip,
   updateTrip,
 } from '../my-travel-app/src/api/tripApi.js'
@@ -38,10 +40,20 @@ async function travelPlanRequest(path, init, { allowNotFound = false } = {}) {
   return response
 }
 
-async function generateGroupPlan(familyId, requestedByUserId) {
+async function generateGroupPlan(familyId, requestedByUserId, trip, forceRegenerate = false) {
   const familyPath = `/families/${encodeURIComponent(familyId)}`
-  const saved = await travelPlanRequest(`${familyPath}/plan`, undefined, { allowNotFound: true })
-  if (saved.ok) return { plan: planFromBackend(await saved.json()) }
+  if (!forceRegenerate) {
+    const saved = await travelPlanRequest(`${familyPath}/plan`, undefined, { allowNotFound: true })
+    if (saved.ok) {
+      const data = await saved.json()
+      return {
+        plan:
+          data.format === 'travel-app'
+            ? data.plan
+            : planFromBackend(data, trip.members),
+      }
+    }
+  }
 
   const start = await travelPlanRequest(`${familyPath}/plan`, {
     method: 'POST',
@@ -60,10 +72,27 @@ async function generateGroupPlan(familyId, requestedByUserId) {
       `${familyPath}/plan/${encodeURIComponent(interactionToken)}`,
     )
     if (response.status === 202) continue
-    return { plan: planFromBackend(await response.json()) }
+    return { plan: planFromBackend(await response.json(), trip.members) }
   }
 
   throw new Error('Plan generation is taking longer than expected. Please try again.')
+}
+
+async function getSavedGroupPlan(familyId, trip) {
+  const path = `/families/${encodeURIComponent(familyId)}/plan`
+  const response = await travelPlanRequest(path, undefined, { allowNotFound: true })
+  if (response.status === 404) return null
+  const data = await response.json()
+  return data.format === 'travel-app' ? data.plan : planFromBackend(data, trip.members)
+}
+
+async function saveGroupPlan(familyId, userId, plan) {
+  await travelPlanRequest(`/families/${encodeURIComponent(familyId)}/plan`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ updatedBy: userId, plan }),
+  })
+  return 'server'
 }
 
 export default function TravelApp() {
@@ -259,11 +288,14 @@ export default function TravelApp() {
 
   async function handleOpenTrip(chosenTrip) {
     try {
-      const saved = await getTravelProfile(profile.userId, chosenTrip.familyId)
+      const [saved, savedPlan] = await Promise.all([
+        getTravelProfile(profile.userId, chosenTrip.familyId),
+        getSavedGroupPlan(chosenTrip.familyId, chosenTrip),
+      ])
       setHasTripPreferences(Boolean(saved && hasAnyAnswer(saved)))
       setTrip(chosenTrip)
       setDestinationId(chosenTrip.destinationId)
-      setPlan(null)
+      setPlan(savedPlan)
       setScreen('trip')
     } catch (error) {
       setPageError(error instanceof Error ? error.message : 'Could not open this trip.')
@@ -291,6 +323,7 @@ export default function TravelApp() {
     setTrips((current) => current.map((item) => (
       item.familyId === updated.familyId ? { ...item, ...updated } : item
     )))
+    setPlan(null)
     setDestinationId(updated.destinationId)
     setScreen('trip')
   }
@@ -335,13 +368,23 @@ export default function TravelApp() {
     }
   }
 
-  async function handleGeneratePlan() {
-    const result = await generateGroupPlan(trip.familyId, profile.userId, trip)
+  async function handleGeneratePlan(forceRegenerate = false) {
+    const result = await generateGroupPlan(trip.familyId, profile.userId, trip, forceRegenerate)
     if (result.plan) {
       setPlan(result.plan)
       setScreen('plan')
     }
     return result
+  }
+
+  async function handleDeleteCurrentTrip() {
+    await deleteTrip(trip, profile.userId)
+    await showDashboard(profile)
+  }
+
+  async function handleLeaveCurrentTrip() {
+    await leaveTrip(trip, profile.userId)
+    await showDashboard(profile)
   }
 
   const colors = {
@@ -443,10 +486,22 @@ export default function TravelApp() {
           onEditPreferences={handleEditPreferences}
           onEditTrip={handleEditTrip}
           onGeneratePlan={handleGeneratePlan}
+          hasPlan={Boolean(plan)}
+          onViewPlan={() => setScreen('plan')}
+          onDeleteTrip={handleDeleteCurrentTrip}
+          onLeaveTrip={handleLeaveCurrentTrip}
         />
       )}
       {screen === 'plan' && plan && trip && (
-        <PlanScreen plan={plan} trip={trip} onBack={() => setScreen('trip')} />
+        <PlanScreen
+          plan={plan}
+          trip={trip}
+          profile={profile}
+          onPlanChange={setPlan}
+          onSavePlan={(updatedPlan) => saveGroupPlan(trip.familyId, profile.userId, updatedPlan)}
+          onRegenerate={() => handleGeneratePlan(true)}
+          onBack={() => setScreen('trip')}
+        />
       )}
     </div>
   )

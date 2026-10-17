@@ -291,7 +291,7 @@ function StopCard({ item, open, onToggle, onEdit }) {
   );
 }
 
-function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onBack }) {
+function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerate, onBack }) {
 
   const [dayIndex, setDayIndex] = useState(0);
   const [openTips, setOpenTips] = useState({});
@@ -312,7 +312,9 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onBack })
     onPlanChange(newPlan);
     setSaveState("saving");
     try {
-      const where = await savePlan(trip.familyId, profile.userId, newPlan);
+      const where = onSavePlan
+        ? await onSavePlan(newPlan)
+        : await savePlan(trip.familyId, profile.userId, newPlan);
       setSaveState(where === "device" ? "device" : "saved");
     } catch (problem) {
       setSaveState("failed");
