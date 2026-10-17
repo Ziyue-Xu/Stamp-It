@@ -1,0 +1,283 @@
+
+.plan-page .split-card {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border: 2px dashed var(--ink);
+  border-radius: 6px;
+  background: var(--sky);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+.plan-page .split-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.plan-page .split-tag {
+  padding: 5px 10px;
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.plan-page .split-count {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-soft);
+}
+.plan-page .split-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+
+.plan-page .split-status {
+  margin: 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.plan-page .split-status-todo {
+  color: var(--gold);
+}
+
+
+.plan-page .split-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plan-page .split-lane {
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-left-width: 8px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.plan-page .split-lane-mine {
+  border-color: var(--gold);
+  border-left-width: 8px;
+}
+.plan-page .split-lane-0 { border-left-color: var(--terracotta); }
+.plan-page .split-lane-1 { border-left-color: var(--teal); }
+.plan-page .split-lane-2 { border-left-color: var(--gold); }
+.plan-page .split-lane-3 { border-left-color: var(--pink); }
+.plan-page .split-lane-mine.split-lane-0 { border-left-color: var(--terracotta); }
+.plan-page .split-lane-mine.split-lane-1 { border-left-color: var(--teal); }
+.plan-page .split-lane-mine.split-lane-2 { border-left-color: var(--gold); }
+.plan-page .split-lane-mine.split-lane-3 { border-left-color: var(--pink); }
+
+
+.plan-page .split-lane-label {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+
+.plan-page .split-join {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--paper);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.plan-page .split-join:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--paper) 14%, transparent);
+}
+.plan-page .split-join-on {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--paper);
+  cursor: default;
+}
+
+.plan-page .split-lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plan-page .split-lane-name {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+.plan-page .split-lane-stats {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+
+.plan-page .split-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.plan-page .split-nobody {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+.plan-page .split-chip-me {
+  background: var(--paper);
+  color: var(--ink);
+}
+.plan-page .split-chip {
+  padding: 4px 8px;
+  border: 2px solid var(--paper);
+  border-radius: 3px;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+
+.plan-page .split-stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.plan-page .split-stop {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.plan-page .split-stop-time {
+  flex: none;
+  width: 54px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+.plan-page .split-stop-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.plan-page .split-stop-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plan-page .split-kind {
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--paper);
+  background: var(--teal);
+}
+.plan-page .split-kind-meal { background: var(--terracotta); }
+.plan-page .split-kind-lodging { background: var(--pink); }
+.plan-page .split-stop-meta {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+.plan-page .split-stop-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.plan-page .split-stop-address {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+
+.plan-page .split-stop-go .split-stop-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+
+
+.plan-page .split-undecided {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.plan-page .split-undecided-tag {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+.plan-page .split-undecided-names {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+
+.plan-page .split-regroup {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 2px dashed var(--teal);
+  border-radius: 6px;
+}
+.plan-page .split-regroup-tag {
+  flex: none;
+  padding: 5px 9px;
+  border-radius: 3px;
+  background: var(--teal);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.plan-page .split-regroup-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.plan-page .split-regroup-when {
+  font-family: var(--font-label);
+  font-size: 12px;
+  color: var(--gold);
+}
+.plan-page .split-regroup-place {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.plan-page .split-regroup-address {
+  font-size: 12px;
+  color: var(--ink-soft);
+}

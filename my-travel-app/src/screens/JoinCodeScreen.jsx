@@ -37,9 +37,7 @@ function JoinCodeScreen({ onFound, onBack }) {
     <main className="profile join">
       {/* TOP ROW: back arrow (left) + three little decoration stamps (right) */}
       <div className="join-top">
-        {/* BUTTON: back arrow.
-            WHEN CLICKED: onBack() -> App.jsx goes back to Welcome.
-            DATA SAVED: none. */}
+       
         <button className="back-btn" onClick={onBack} aria-label="Go back">
           &larr;
         </button>
@@ -96,8 +94,9 @@ function JoinCodeScreen({ onFound, onBack }) {
         onClick={handleFindClick}
         disabled={!codeOk || busy}
         whileTap={{ scale: 0.96 }}
+        
       >
-    
+       Join Your Family
       </motion.button>
     </main>
     </div>

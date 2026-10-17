@@ -1,8 +1,8 @@
 
 .welcome {
 
-  --paper: #3a3d5c; 
-  --ink: #f6ebcb; 
+  --paper: #3a3d5c; /* navy background */
+  --ink: #f6ebcb; /* cream text */
   --ink-soft: #d8cdae;
   --terracotta: #e4603a;
   --gold: #edb04c; /* mustard */
@@ -38,14 +38,14 @@
   position: absolute;
   left: 24px;
   right: 24px;
-  bottom: 28px;
+  bottom: 22px;
 }
 
 .welcome-title {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 68px;
+  font-size: 62px;
   letter-spacing: -0.05em;
   line-height: 0.96;
   text-transform: uppercase;
@@ -62,13 +62,13 @@
 }
 
 .welcome-buttons {
-  margin-top: 18px;
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-/* text blocks fade up one after another (--d is the delay) */
+
 .rise {
   animation: welcome-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: var(--d, 0s);
@@ -87,7 +87,7 @@
 
 .welcome .btn {
   height: auto;
-  min-height: 48px;
+  min-height: 46px;
   padding: 0 24px;
   border-radius: 6px;
   font-family: var(--font-heading);
@@ -110,6 +110,12 @@
   background: transparent;
   color: var(--ink);
 }
+/* the smaller Log in button */
+.welcome .btn.btn-small {
+  min-height: 36px;
+  font-size: 14px;
+}
+
 
 .btn {
   display: flex;

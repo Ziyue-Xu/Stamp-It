@@ -1,0 +1,223 @@
+
+.plan-page .plan-savestate {
+  min-height: 18px;
+  margin: 0;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-soft);
+}
+.plan-page .plan-savestate-failed {
+  color: var(--pink);
+}
+.plan-page .plan-link-btn {
+  margin-left: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+
+.plan-page .plan-edit-btn {
+  margin-top: 10px;
+  margin-left: 8px;
+  padding: 6px 10px;
+  border: 2px solid color-mix(in srgb, var(--paper) 45%, transparent);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.plan-page .plan-edit-btn:hover {
+  background: color-mix(in srgb, var(--paper) 10%, transparent);
+}
+
+
+.plan-page .plan-stop-transit .plan-edit-btn {
+  margin: 0 0 0 auto;
+  padding: 4px 8px;
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.plan-page .plan-stop-transit .plan-edit-btn:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+
+.plan-page .plan-added-by {
+  margin-top: 6px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: color-mix(in srgb, var(--paper) 65%, transparent);
+}
+
+
+.plan-page .plan-edit-row {
+  position: relative;
+  z-index: 2;
+  list-style: none;
+  min-width: 0;
+}
+.plan-page .plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  padding: 12px;
+  border: 2px solid var(--ink-soft);
+  border-radius: 6px;
+  background: var(--sky);
+  box-shadow: 0 0 0 6px var(--paper); 
+}
+.plan-page .plan-form-title {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+.plan-page .plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+.plan-page .plan-field-label {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-soft);
+}
+.plan-page .plan-field input,
+.plan-page .plan-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.plan-page .plan-field input[type="time"] {
+  padding: 6px 6px;
+  font-size: 13px;
+}
+.plan-page .plan-field textarea {
+  resize: vertical;
+  min-height: 52px;
+}
+.plan-page .plan-field input:focus,
+.plan-page .plan-field textarea:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.plan-page .plan-field-row {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+
+.plan-page .plan-kind-choices {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.plan-page .plan-kind-choice {
+  padding: 8px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.plan-page .plan-kind-choice-selected {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--paper);
+}
+
+.plan-page .plan-form-problem {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pink);
+}
+.plan-page .plan-form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.plan-page .plan-form-save {
+  padding: 10px 18px;
+  border: 2px solid var(--gold);
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.plan-page .plan-form-cancel,
+.plan-page .plan-form-delete {
+  padding: 10px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+.plan-page .plan-form-delete {
+  margin-left: auto;
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+
+.plan-page .plan-add-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px dashed var(--ink);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+.plan-page .plan-add-btn:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.plan-page .plan-reset-btn {
+  align-self: center;
+  margin-top: 8px;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-decoration: underline;
+  cursor: pointer;
+}

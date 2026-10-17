@@ -75,13 +75,91 @@ function itemFromBackend(raw) {
     transit,
     tips: Array.isArray(raw.notes_and_tips) ? raw.notes_and_tips : [],
     cost,
+    addedBy: null,
   };
 }
 
-export function planFromBackend(data) {
+
+function nameFor(userId, members, label) {
+  const found = (members || []).find((member) => member.userId === userId);
+  if (found && found.name) return found.name;
+  const guess = String(label || "").match(/^([A-Za-z][\w-]*)'s\b/);
+  return guess ? guess[1] : "Traveler";
+}
+
+
+function splitFromBackend(raw, members) {
+  const groups = (raw.branches || []).map((branch, index) => ({
+    id: branch.id || "branch-" + (index + 1),
+    label: branch.label || "",
+    members: (branch.traveler_ids || []).map((userId) => ({
+      userId,
+      name: nameFor(userId, members, branch.label),
+    })),
+    items: sortItems((branch.timeline || []).map(itemFromBackend)),
+  }));
+  const where = raw.rejoin_location || null;
+  return {
+    id: raw.id || "split-" + raw.start_time,
+    type: "split",
+    title: "",
+    start: raw.start_time || "",
+    end: raw.end_time || "",
+    minutes: null,
+    place: "",
+    address: "",
+    transit: null,
+    tips: [],
+    cost: null,
+    addedBy: null,
+    regroup:
+      where || raw.rejoin_time
+        ? {
+            place: where ? where.name || "" : "",
+            address: where ? where.address || "" : "",
+            time: raw.rejoin_time || raw.end_time || "",
+          }
+        : null,
+    picks: {},
+    groups,
+  };
+}
+
+
+function buildCities(days) {
+  const cities = [];
+  days.forEach((day) => {
+    const last = cities[cities.length - 1];
+    if (last && last.name === day.city) last.days += 1;
+    else cities.push({ name: day.city, days: 1 });
+  });
+  return cities;
+}
+
+
+export function sortItems(items) {
+  return [...items].sort((a, b) => {
+    if (!a.start && !b.start) return 0;
+    if (!a.start) return 1;
+    if (!b.start) return -1;
+    return a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
+  });
+}
+
+
+export function recalculatePlan(plan) {
+  const days = plan.days.map((day) => ({ ...day, total: sumCosts(day.items) }));
+  const allItems = days.flatMap((day) => day.items);
+  return { ...plan, days, cities: buildCities(days), total: sumCosts(allItems) };
+}
+
+
+export function planFromBackend(data, members = []) {
   const { title, subtitle } = splitTitle(data.trip_title);
   const days = (data.days || []).map((rawDay) => {
-    const items = (rawDay.timeline || []).map(itemFromBackend);
+    const stops = (rawDay.timeline || []).map(itemFromBackend);
+    const splits = (rawDay.splits || []).map((raw) => splitFromBackend(raw, members));
+    const items = sortItems([...stops, ...splits]);
     return {
       dayNumber: rawDay.day_number,
       date: rawDay.date,
@@ -92,13 +170,7 @@ export function planFromBackend(data) {
     };
   });
 
-
-  const cities = [];
-  days.forEach((day) => {
-    const last = cities[cities.length - 1];
-    if (last && last.name === day.city) last.days += 1;
-    else cities.push({ name: day.city, days: 1 });
-  });
+  const cities = buildCities(days);
 
   const allItems = days.flatMap((day) => day.items);
   return {

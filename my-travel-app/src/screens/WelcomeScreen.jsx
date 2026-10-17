@@ -1,5 +1,4 @@
 
-
 import { useEffect, useRef, useState } from "react";
 import Stamp from "../components/Stamp";
 import {
@@ -31,7 +30,6 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, []);
-
 
   const stageRef = useRef(null);
   useEffect(() => {
@@ -75,15 +73,15 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
           <Stamp placed color="var(--ink)" fill="var(--gold)" x={258} y={206} w={150} h={188} rot={6} depth={1.3} delay={0.7}>
             <EiffelArt />
           </Stamp>
-          <Stamp placed shape="ink" color="var(--ink)" x={14} y={384} w={132} h={112} rot={-1} depth={0.6} delay={0.85}>
+          <Stamp placed shape="ink" color="var(--ink)" x={14} y={366} w={132} h={112} rot={-1} depth={0.6} delay={0.85}>
             <BasilicaInk />
           </Stamp>
-          <Stamp placed color="var(--ink)" fill="var(--ink)" x={236} y={418} w={150} h={96} rot={3} depth={0.9} delay={1.0}>
+          <Stamp placed color="var(--ink)" fill="var(--ink)" x={236} y={396} w={150} h={96} rot={3} depth={0.9} delay={1.0}>
             <FujiArt />
           </Stamp>
         </div>
 
-   
+
         <div className="welcome-bottom">
           <h1 className="welcome-title rise" style={{ "--d": "1.2s" }}>
             Travel,
@@ -95,17 +93,18 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
           </div>
 
           <div className="welcome-buttons rise" style={{ "--d": "1.5s" }}>
-       
+
             <button type="button" className="btn btn-primary" onClick={onStartTrip}>
               Start a new trip
             </button>
 
-   
+
             <button type="button" className="btn btn-secondary" onClick={onJoinTrip}>
               Join with a code
             </button>
 
-            <button type="button" className="btn btn-secondary" onClick={onLogin}>
+          
+            <button type="button" className="btn btn-secondary btn-small" onClick={onLogin}>
               Log in
             </button>
           </div>
