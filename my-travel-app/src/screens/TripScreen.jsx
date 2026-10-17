@@ -11,6 +11,7 @@ import { findAvatar } from "../data/avatars";
 import AvatarArt from "../components/AvatarArt";
 import ReloadButton from "../components/ReloadButton";
 import ItineraryIcon from "../components/ItineraryIcon";
+import ChatWidget from "../components/ChatWidget";
 import {
   formatDateRange,
   describeTripTiming,
@@ -239,6 +240,7 @@ function TripScreen({
           </button>
         )}
       </main>
+      <ChatWidget trip={trip} profile={profile} />
     </div>
   );
 }
