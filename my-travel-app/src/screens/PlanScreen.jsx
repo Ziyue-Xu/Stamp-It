@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Stamp from "../components/Stamp";
@@ -9,6 +8,7 @@ import { formatDay, formatTime } from "../data/dates";
 import SplitBlock from "../components/SplitBlock";
 import { formatMoney, sortItems, recalculatePlan } from "../api/planFormat";
 import { savePlan, resetPlan } from "../api/planApi";
+import { getCreatorId } from "../api/tripApi";
 import "./PlanScreen.css";
 import "./PlanEdit.css";
 
@@ -78,7 +78,7 @@ function newStopId() {
 
 
 function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
-
+  // MEMORY: what is typed in each box right now
   const [type, setType] = useState(initial.type);
   const [title, setTitle] = useState(initial.title);
   const [start, setStart] = useState(initial.start);
@@ -90,7 +90,7 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
 
   const isNew = !initial.id;
 
- 
+
   function handleSubmit(event) {
     event.preventDefault();
     setProblem("");
@@ -291,12 +291,18 @@ function StopCard({ item, open, onToggle, onEdit }) {
   );
 }
 
-function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
+function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onBack }) {
 
   const [dayIndex, setDayIndex] = useState(0);
   const [openTips, setOpenTips] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [saveState, setSaveState] = useState("");
+
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenError, setRegenError] = useState("");
+
+
+  const isCreator = getCreatorId(trip) === profile.userId;
 
   const day = plan.days[dayIndex];
   const currency = (plan.total && plan.total.currency) || (day.total && day.total.currency) || "EUR";
@@ -321,7 +327,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
     return recalculatePlan({ ...plan, days });
   }
 
-
+  
   function handleSaveStop(stop) {
     const isOld = Boolean(stop.id) && day.items.some((item) => item.id === stop.id);
     const items = isOld
@@ -345,7 +351,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
     commit(planWithDayItems(day.items.filter((item) => item.id !== id)));
   }
 
-
+ 
   function handlePickTrack(splitId, groupId) {
     const days = plan.days.map((d, index) =>
       index !== dayIndex
@@ -363,6 +369,31 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
   }
 
 
+  async function handleRegenerate() {
+    if (regenerating) return;
+    if (
+      !window.confirm(
+        "Build a brand-new itinerary? This replaces the current one, including everyone's edits and track picks."
+      )
+    ) {
+      return;
+    }
+    setRegenerating(true);
+    setRegenError("");
+    try {
+
+      await onRegenerate();
+      setEditingId(null);
+      setDayIndex(0);
+      setOpenTips({});
+      setSaveState("");
+    } catch (problem) {
+      setRegenError(problem.message || "Could not build a new itinerary. Please try again.");
+    }
+    setRegenerating(false);
+  }
+
+
   async function handleReset() {
     if (!window.confirm("Throw away everyone's edits and go back to the original itinerary?")) return;
     const result = await resetPlan(trip.familyId, trip);
@@ -372,7 +403,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
     setSaveState("");
   }
 
-
+ 
   const blankStop = {
     id: "",
     type: "activity",
@@ -404,7 +435,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
         <span className="plan-label">GROUP ITINERARY</span>
       </div>
 
-   
+
       <header className="plan-header">
         <div className="plan-header-text">
           <h1>{plan.title}</h1>
@@ -438,7 +469,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
         </section>
       )}
 
-      {/* Shown ONLY for the saved example itinerary, so nobody mistakes it for real */}
+
       {plan.isSample && (
         <p className="plan-sample">
           EXAMPLE ITINERARY. Shown while the backend isn't building plans yet.
@@ -496,7 +527,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
         ))}
       </nav>
 
-      
+
       <AnimatePresence mode="wait">
         <motion.section
           key={day.dayNumber}
@@ -534,7 +565,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
                   />
                 </li>
               ) : item.type === "split" ? (
-                /* A "group splits up" moment. Each person picks ONE track. */
+
                 <SplitBlock
                   item={item}
                   key={item.id}
@@ -580,6 +611,19 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onBack }) {
         <button className="plan-reset-btn" onClick={handleReset}>
           UNDO ALL EDITS
         </button>
+      )}
+
+
+      {isCreator && onRegenerate && (
+        <div className="plan-regen">
+          <button className="plan-regen-btn" onClick={handleRegenerate} disabled={regenerating}>
+            {regenerating ? "BUILDING YOUR ITINERARY..." : "REGENERATE ITINERARY"}
+          </button>
+          {regenerating && (
+            <p className="plan-regen-note">This can take a minute. Please keep this page open.</p>
+          )}
+          {regenError && <p className="plan-form-problem" role="alert">{regenError}</p>}
+        </div>
       )}
     </main>
     </div>

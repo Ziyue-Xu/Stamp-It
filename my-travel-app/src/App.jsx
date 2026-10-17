@@ -30,18 +30,17 @@ import {
 } from "./api/tripApi";
 import { getTravelProfile } from "./api/preferencesApi";
 import { hasAnyAnswer, answersFromTravelProfile } from "./data/preferenceQuestions";
-import { generateGroupPlan } from "./api/planApi";
+import { generateGroupPlan, getExistingPlan } from "./api/planApi";
 
 function App() {
 
   const [screen, setScreen] = useState("loading");
 
- 
+
   const [destinationId, setDestinationId] = useState(null);
 
 
   const [trip, setTrip] = useState(null);
-
 
 
   const [profile, setProfile] = useState(null);
@@ -49,7 +48,7 @@ function App() {
 
   const [trips, setTrips] = useState([]);
 
- 
+
   const [savedAnswers, setSavedAnswers] = useState(null);
 
 
@@ -57,6 +56,23 @@ function App() {
 
 
   const [plan, setPlan] = useState(null);
+
+
+  const currentFamilyId = trip ? trip.familyId : null;
+  useEffect(() => {
+    let stale = false; // true if another trip was opened before the answer came
+    setPlan(null);
+    if (currentFamilyId) {
+      getExistingPlan(currentFamilyId, trip).then((result) => {
+        if (!stale && result.plan) setPlan(result.plan);
+      });
+    }
+    return () => {
+      stale = true;
+    };
+
+  }, [currentFamilyId]);
+
 
   const destination = findDestination(destinationId);
   const theme = destination ? destination.theme : home;
@@ -89,6 +105,7 @@ function App() {
     }
   }
 
+
   useEffect(() => {
     async function start() {
       const savedProfile = await getProfile();
@@ -102,6 +119,7 @@ function App() {
     start();
   }, []);
 
+
   async function goHome() {
     if (profile) {
       await showDashboard(profile);
@@ -112,17 +130,16 @@ function App() {
     }
   }
 
-
   function handleNewTrip() {
     setScreen("create");
   }
 
-  
+
   function handleJoinTrip() {
     setScreen("join");
   }
 
-
+ 
   function handleLogin() {
     setScreen("login");
   }
@@ -132,7 +149,7 @@ function App() {
     setDestinationId(id);
   }
 
- 
+
   async function handleCreateTrip({
     startDate,
     endDate,
@@ -167,7 +184,6 @@ function App() {
     setScreen("trip");
   }
 
-
   async function handleUpdateTrip({
     startDate,
     endDate,
@@ -193,6 +209,7 @@ function App() {
     setDestinationId(updated.destinationId);
     setScreen("trip");
   }
+
 
 
   async function handleShareContinue() {
@@ -239,6 +256,7 @@ function App() {
     }
   }
 
+
   function handleCancelPreferences() {
     setSavedAnswers(null);
     setScreen("trip");
@@ -265,14 +283,12 @@ function App() {
     setScreen("account");
   }
 
-
   async function handleSaveAccount(changes) {
     const updated = await updateProfile(profile.userId, changes);
     await refreshMemberInTrips(updated);
     setProfile(updated);
   }
 
- 
   async function handleSignOut() {
     await clearProfile();
     setProfile(null);
@@ -331,7 +347,7 @@ function App() {
         />
       )}
 
-
+  
       {screen === "editTrip" && trip && profile && (
         <CreateTripScreen
           initialTrip={trip}
@@ -347,11 +363,12 @@ function App() {
         <ShareCodeScreen trip={trip} onContinue={handleShareContinue} />
       )}
 
+   
       {screen === "join" && (
         <JoinCodeScreen onFound={handleTripFound} onBack={goHome} />
       )}
 
-
+     
       {screen === "signup" && (
         <SignUpScreen
           familyCode={trip ? trip.tripCode : null}
@@ -360,7 +377,7 @@ function App() {
         />
       )}
 
-     
+
       {screen === "preferences" && profile && trip && (
         <PreferencesScreen
           profile={profile}
@@ -394,18 +411,18 @@ function App() {
         />
       )}
 
-   
+
       {screen === "plan" && plan && trip && (
         <PlanScreen
           plan={plan}
           trip={trip}
           profile={profile}
           onPlanChange={setPlan}
+          onRegenerate={handleGeneratePlan}
           onBack={() => setScreen("trip")}
         />
       )}
 
-  
       {screen === "trip" && trip && profile && (
         <TripScreen
           trip={trip}
@@ -415,6 +432,8 @@ function App() {
           onEditPreferences={handleEditPreferences}
           onEditTrip={handleEditTrip}
           onGeneratePlan={handleGeneratePlan}
+          hasPlan={Boolean(plan)}
+          onViewPlan={() => setScreen("plan")}
         />
       )}
     </div>

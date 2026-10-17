@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import QuestionIcon from "../components/QuestionIcon";
@@ -16,9 +17,10 @@ import {
   formatDay,
   formatTime,
 } from "../data/dates";
-import "./ProfileScreen.css"; 
-import "./SignUpScreen.css";
-import "./TripScreen.css"; 
+import "./ProfileScreen.css"; // shared styles (other screens still use these)
+import "./SignUpScreen.css"; // shared styles (other screens still use these)
+import "./TripScreen.css"; // this screen's stamp-style looks
+
 
 function TripScreen({
   trip,
@@ -28,8 +30,10 @@ function TripScreen({
   onEditPreferences,
   onEditTrip,
   onGeneratePlan,
+  hasPlan,
+  onViewPlan,
 }) {
-
+  
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -64,7 +68,7 @@ function TripScreen({
     <main className="tp">
 
       <div className="tp-top">
-
+  
         <button className="back-btn" onClick={onBack} aria-label="Back to my trips">
           &larr;
         </button>
@@ -89,7 +93,6 @@ function TripScreen({
         </div>
       </header>
 
-
       <section className="tp-ticket">
         <div className="tp-ticket-side">
           <div className="tp-ticket-label">ARRIVE</div>
@@ -108,6 +111,7 @@ function TripScreen({
           {trip.departureCity && <div className="tp-ticket-time">{trip.departureCity}</div>}
         </div>
       </section>
+
 
       {isCreator && onEditTrip && (
         <motion.button className="tp-edit" onClick={onEditTrip} whileTap={{ scale: 0.97 }}>
@@ -129,7 +133,7 @@ function TripScreen({
         <span className="tp-arrow" aria-hidden="true">&rsaquo;</span>
       </motion.button>
 
-
+   
       <section className="tp-section">
         <h2>Travellers</h2>
         {trip.members.length === 0 && (
@@ -155,22 +159,30 @@ function TripScreen({
         })}
       </section>
 
-
+    
       <section className="tp-plan">
         <div className="tp-plan-top">
           <QuestionIcon field="activityFocus" small />
           <div>
             <div className="tp-plan-title">Group itinerary</div>
             <div className="tp-plan-sub">
-              {isCreator
+              {hasPlan
+                ? "Your group's itinerary is ready."
+                : isCreator
                 ? "When everyone has answered, build the plan for your group."
                 : `Only ${creatorName} can generate the itinerary. It will appear here once it's ready.`}
             </div>
           </div>
         </div>
 
+        {hasPlan && (
+          <motion.button className="tp-generate" onClick={onViewPlan} whileTap={{ scale: 0.96 }}>
+            View itinerary
+          </motion.button>
+        )}
 
-        {isCreator && (
+
+        {isCreator && !hasPlan && (
           <motion.button
             className="tp-generate"
             onClick={handleGenerateClick}
