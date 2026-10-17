@@ -1,48 +1,46 @@
-import Stamp from "./components/Stamp";
-import { DESTINATION_STAMPS } from "./components/destinationStamps";
-import { LandscapeArt } from "./components/stampArt";
- 
+import { AVATARS, findAvatar } from "./data/avatars";
+import AvatarArt from "./components/AvatarArt";
 
-const colors = {
-  "--paper": "#3a3d5c",
-  "--ink": "#f6ebcb",
-  "--sky": "#474c70",
-  "--gold": "#edb04c",
-  "--teal": "#7fa46b",
-  "--pink": "#efa3bb",
-};
-
-function App() {
-  const ids = Object.keys(DESTINATION_STAMPS);
+// A small square that shows one avatar (the screens do the same thing).
+function Chip({ avatar, size = 84 }) {
   return (
     <div
+      className="avatar-fill"
       style={{
-        ...colors,
-        minHeight: "100vh",
-        background: "var(--paper)",
-        color: "var(--ink)",
-        padding: 40,
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 24,
-        alignItems: "flex-start",
-        fontFamily: "'Archivo', sans-serif",
+        width: size,
+        height: size,
+        borderRadius: 8,
+        background: avatar.background,
       }}
     >
-      {ids.map((id) => (
-        <div key={id} style={{ textAlign: "center" }}>
-          <Stamp color="var(--ink)" fill="var(--gold)" w={110} h={140} rot={-2}>
-            {DESTINATION_STAMPS[id]}
-          </Stamp>
-          <div style={{ marginTop: 8, fontSize: 13 }}>{id}</div>
-        </div>
-      ))}
-      <div style={{ textAlign: "center" }}>
-        <Stamp color="var(--ink)" fill="var(--gold)" w={110} h={140} rot={2}>
-          <LandscapeArt />
-        </Stamp>
-        <div style={{ marginTop: 8, fontSize: 13 }}>(everything else)</div>
+      <AvatarArt id={avatar.id} />
+    </div>
+  );
+}
+
+function App() {
+  const legacy = findAvatar("terracotta");
+  const seeded = findAvatar(undefined, "user-1234");
+  const seededAgain = findAvatar(undefined, "user-1234");
+
+  return (
+    <div style={{ padding: 32, fontFamily: "system-ui", lineHeight: 1.7 }}>
+      <h1>Step 5 check</h1>
+
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        {AVATARS.map((avatar) => (
+          <div key={avatar.id} style={{ textAlign: "center", fontSize: 13 }}>
+            <Chip avatar={avatar} />
+            {avatar.label}
+          </div>
+        ))}
       </div>
+
+      <p><b>Old color id "terracotta" becomes:</b> {legacy.label} (should be Sagrada Familia)</p>
+      <p>
+        <b>No avatar, seed "user-1234":</b> {seeded.label}. Asked twice:{" "}
+        {seededAgain.label} (same both times)
+      </p>
     </div>
   );
 }
