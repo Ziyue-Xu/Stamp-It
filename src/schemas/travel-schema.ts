@@ -23,14 +23,16 @@ export const travelUsersSchema: CollectionSchema = {
 export const travelFamiliesSchema: CollectionSchema = {
   name: 'travel-families',
   columns: [
-    { name: 'family_code', storage: 'text', interpretation: 'plain', required: true },
-    { name: 'family_id', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'familyCode', storage: 'text', interpretation: 'plain', required: true },
     { name: 'country', storage: 'text', interpretation: 'plain', required: true },
     { name: 'startDate', storage: 'text', interpretation: 'plain', required: true },
     { name: 'endDate', storage: 'text', interpretation: 'plain', required: true },
-    { name: 'ownerId', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'startTime', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'endTime', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'startCity', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'endCity', storage: 'text', interpretation: 'plain', required: true },
     { name: 'users', storage: 'text', interpretation: { kind: 'json' }, required: true },
   ],
-  uniqueOn: ['family_code'],
+  uniqueOn: ['familyCode'],
   permissions: privatePermissions,
 }

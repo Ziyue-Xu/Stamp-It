@@ -122,6 +122,8 @@ export interface Env extends DOBindings<typeof __DO_MANIFEST__> {
   AUTH0_DOMAIN?: string
   AUTH0_CLIENT_ID?: string
   AUTH0_SESSION_SECRET?: string
+  /** Google Gemini API key; used only by the server-side travel planner. */
+  GEMINI_API_KEY?: string
 }
 
 export type AppContext = { Bindings: Env }

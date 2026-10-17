@@ -21,7 +21,50 @@ import {
 } from '../my-travel-app/src/api/tripApi.js'
 import { clearProfile, saveProfile } from '../my-travel-app/src/api/profileApi.js'
 import { getTravelProfile } from '../my-travel-app/src/api/preferencesApi.js'
-import { generateGroupPlan } from '../my-travel-app/src/api/planApi.js'
+import { planFromBackend } from '../my-travel-app/src/api/planFormat.js'
+
+async function travelPlanRequest(path, init) {
+  const response = await fetch(path, init)
+  if (response.status === 403) {
+    throw new Error('Only the trip creator can generate the plan.')
+  }
+  if (!response.ok && response.status !== 202) {
+    let error = 'Could not generate the plan. Please try again.'
+    try {
+      const data = await response.json()
+      error = data.error || data.message || error
+    } catch {
+      // Keep the user-facing fallback for non-JSON server errors.
+    }
+    throw new Error(error)
+  }
+  return response
+}
+
+async function generateGroupPlan(familyId, requestedByUserId) {
+  const familyPath = `/families/${encodeURIComponent(familyId)}`
+  const start = await travelPlanRequest(`${familyPath}/plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requestedBy: requestedByUserId }),
+  })
+  const { interactionToken } = await start.json()
+  if (typeof interactionToken !== 'string' || !interactionToken) {
+    throw new Error('The trip planning service returned an invalid request token.')
+  }
+
+  const deadline = Date.now() + 15 * 60 * 1000
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2500))
+    const response = await travelPlanRequest(
+      `${familyPath}/plan/${encodeURIComponent(interactionToken)}`,
+    )
+    if (response.status === 202) continue
+    return { plan: planFromBackend(await response.json()) }
+  }
+
+  throw new Error('Plan generation is taking longer than expected. Please try again.')
+}
 
 export default function TravelApp() {
   const [screen, setScreen] = useState('loading')

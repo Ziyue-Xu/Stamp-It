@@ -1,6 +1,7 @@
 import type { Context, Hono } from 'hono'
 import type { ActionResult, GetActionData, MutateActionData } from 'deepspace/worker'
 import type { AppContext, Env } from '../../worker.js'
+import { generateTripPlan, getTripPlan } from './trip-planner.js'
 
 const SESSION_COOKIE = 'travel_session'
 const PENDING_COOKIE = 'travel_pending'
@@ -20,6 +21,13 @@ interface PendingSignIn {
   expiresAt: number
 }
 
+interface TripPlanToken {
+  interactionId: string
+  familyCode: string
+  userId: string
+  expiresAt: number
+}
+
 interface TravelUser {
   userId: string
   name: string
@@ -34,23 +42,86 @@ interface FamilyMember {
     userId: string
     name: string
     email: string
-    emailVerified: boolean
-    organizer: boolean
-    avatar?: string
   }
   userTravelProfile: Record<string, unknown>
 }
 
 interface TravelFamily {
-  family_code: string
-  family_id: string
+  familyCode: string
   country: string
   startDate: string
   endDate: string
-  arrivalCity: string
-  departureCity: string
-  ownerId: string
+  startTime: string
+  endTime: string
+  startCity: string
+  endCity: string
   users: FamilyMember[]
+}
+
+const TRAVEL_PREFERENCE_DEFAULTS = {
+  groundTransportation: { value: null, priority: 'critical' },
+  dietaryRestrictions: { value: [], priority: 'weak_link' },
+  diningCuisine: { value: null, priority: 'flexible' },
+  tripPace: { value: null, priority: 'flexible' },
+  activityFocus: { value: [], priority: 'flexible' },
+  budgetTier: { value: null, priority: 'critical' },
+  morningRoutine: { value: null, priority: 'critical' },
+  interestedInShopping: { value: null, priority: 'flexible' },
+  travelStyle: { value: null, priority: 'flexible' },
+  tourPreference: { value: null, priority: 'flexible' },
+  luggagePreference: { value: null, priority: 'critical' },
+  petFriendly: { value: null, priority: 'weak_link' },
+  activityPopularity: { value: null, priority: 'flexible' },
+} as const
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isGeneratedTripPlan(value: unknown): value is Record<string, unknown> {
+  if (
+    !isRecord(value) ||
+    typeof value.trip_title !== 'string' ||
+    typeof value.start_date !== 'string' ||
+    typeof value.end_date !== 'string' ||
+    !Array.isArray(value.destinations) ||
+    !value.destinations.every((destination) => typeof destination === 'string') ||
+    !Array.isArray(value.days) ||
+    !Array.isArray(value.warnings) ||
+    !value.warnings.every((warning) => typeof warning === 'string')
+  ) {
+    return false
+  }
+
+  return value.days.every(
+    (day) =>
+      isRecord(day) &&
+      typeof day.day_number === 'number' &&
+      typeof day.date === 'string' &&
+      typeof day.base_city === 'string' &&
+      typeof day.day_theme_or_summary === 'string' &&
+      Array.isArray(day.timeline) &&
+      day.timeline.every(
+        (item) =>
+          isRecord(item) &&
+          typeof item.id === 'string' &&
+          ['lodging', 'activity', 'meal', 'transit'].includes(String(item.item_type)) &&
+          typeof item.title === 'string' &&
+          typeof item.start_time === 'string' &&
+          typeof item.end_time === 'string' &&
+          (typeof item.duration_minutes === 'number' || item.duration_minutes === null) &&
+          (item.location === null || isRecord(item.location)) &&
+          (item.transit_details === null || isRecord(item.transit_details)) &&
+          (item.notes_and_tips === null ||
+            (Array.isArray(item.notes_and_tips) &&
+              item.notes_and_tips.every((tip) => typeof tip === 'string'))) &&
+          (item.estimated_cost === null ||
+            (isRecord(item.estimated_cost) &&
+              typeof item.estimated_cost.amount === 'number' &&
+              typeof item.estimated_cost.currency === 'string' &&
+              typeof item.estimated_cost.is_per_person === 'boolean')),
+      ),
+  )
 }
 
 function jsonError(
@@ -375,33 +446,230 @@ function validFamilyCode(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}$/u.test(value)
 }
 
-function memberFor(user: TravelUser, organizer: boolean): FamilyMember {
+function familyDetailsFromBody(
+  body: Record<string, unknown>,
+): Omit<TravelFamily, 'familyCode' | 'users'> | null {
+  if (
+    typeof body.country !== 'string' ||
+    !body.country.trim() ||
+    body.country.trim().length > 120 ||
+    (body.startCity !== undefined &&
+      (typeof body.startCity !== 'string' || body.startCity.length > 120)) ||
+    (body.endCity !== undefined &&
+      (typeof body.endCity !== 'string' || body.endCity.length > 120)) ||
+    (body.arrivalCity !== undefined &&
+      (typeof body.arrivalCity !== 'string' || body.arrivalCity.length > 120)) ||
+    (body.departureCity !== undefined &&
+      (typeof body.departureCity !== 'string' || body.departureCity.length > 120))
+  ) {
+    return null
+  }
+  try {
+    const start = normalizeDateTime(body.startDate, body.startTime)
+    const end = normalizeDateTime(body.endDate, body.endTime)
+    if (end.date <= start.date) return null
+    return {
+      country: body.country.trim(),
+      startDate: start.date,
+      endDate: end.date,
+      startTime: start.time,
+      endTime: end.time,
+      startCity:
+        typeof body.startCity === 'string'
+          ? body.startCity.trim()
+          : typeof body.arrivalCity === 'string'
+            ? body.arrivalCity.trim()
+            : '',
+      endCity:
+        typeof body.endCity === 'string'
+          ? body.endCity.trim()
+          : typeof body.departureCity === 'string'
+            ? body.departureCity.trim()
+            : '',
+    }
+  } catch {
+    return null
+  }
+}
+
+function normalizeDateTime(value: unknown, explicitTime: unknown): { date: string; time: string } {
+  if (typeof value !== 'string') throw new Error('Stored trip dates are invalid.')
+  const text = value.trim()
+  const usDate =
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*(\d{1,2}):(\d{2})\s*(AM|PM))?$/iu.exec(text)
+  const isoDate =
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/u.exec(
+      text,
+    )
+  let year: number
+  let month: number
+  let day: number
+  let time = ''
+  if (usDate) {
+    const [, monthText, dayText, yearText, hourText, minuteText, meridiem] = usDate
+    year = Number(yearText)
+    month = Number(monthText)
+    day = Number(dayText)
+    if (hourText && minuteText && meridiem) {
+      const hour = Number(hourText)
+      const minute = Number(minuteText)
+      if (hour < 1 || hour > 12 || minute > 59) throw new Error('Stored trip times are invalid.')
+      time = `${String((hour % 12) + (meridiem.toUpperCase() === 'PM' ? 12 : 0)).padStart(2, '0')}:${minuteText}`
+    }
+  } else if (isoDate) {
+    const [, yearText, monthText, dayText, hourText, minuteText] = isoDate
+    year = Number(yearText)
+    month = Number(monthText)
+    day = Number(dayText)
+    if (hourText && minuteText) time = `${hourText}:${minuteText}`
+  } else {
+    throw new Error('Stored trip dates are invalid.')
+  }
+  const check = new Date(Date.UTC(year, month - 1, day))
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    throw new Error('Stored trip dates are invalid.')
+  }
+  const date = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  if (typeof explicitTime === 'string' && explicitTime) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/u.test(explicitTime)) {
+      throw new Error('Stored trip times are invalid.')
+    }
+    time = explicitTime
+  }
+  return { date, time }
+}
+
+function emptyTravelProfile(): Record<string, { value: unknown; priority: string }> {
+  return Object.fromEntries(
+    Object.entries(TRAVEL_PREFERENCE_DEFAULTS).map(([key, preference]) => [
+      key,
+      { value: Array.isArray(preference.value) ? [] : preference.value, priority: preference.priority },
+    ]),
+  )
+}
+
+function normalizeTravelProfile(value: unknown): Record<string, { value: unknown; priority: string }> {
+  const profile = emptyTravelProfile()
+  if (!isRecord(value)) return profile
+  for (const [oldKey, rawPreference] of Object.entries(value)) {
+    const key = oldKey === 'attractionPopularity' ? 'activityPopularity' : oldKey
+    if (!(key in TRAVEL_PREFERENCE_DEFAULTS) || !isRecord(rawPreference)) continue
+    const defaultPreference = profile[key]
+    if (rawPreference.value !== undefined) defaultPreference.value = rawPreference.value
+  }
+  return profile
+}
+
+function normalizeFamily(value: unknown, familyCode: string): TravelFamily {
+  if (!isRecord(value)) throw new Error(`Stored family ${familyCode} is invalid.`)
+  const start = normalizeDateTime(value.startDate, value.startTime)
+  const end = normalizeDateTime(value.endDate, value.endTime)
+  const rawUsers = Array.isArray(value.users) ? value.users : []
+  const users: FamilyMember[] = rawUsers.map((rawMember) => {
+    if (!isRecord(rawMember) || !isRecord(rawMember.userProfile)) {
+      throw new Error(`Stored family ${familyCode} contains an invalid user profile.`)
+    }
+    const profile = rawMember.userProfile
+    return {
+      userProfile: {
+        userId: typeof profile.userId === 'string' ? profile.userId : '',
+        name: typeof profile.name === 'string' ? profile.name : '',
+        email: typeof profile.email === 'string' ? profile.email : '',
+      },
+      userTravelProfile: normalizeTravelProfile(rawMember.userTravelProfile),
+    }
+  })
+  const ownerId = typeof value.ownerId === 'string' ? value.ownerId : undefined
+  if (ownerId) {
+    const ownerIndex = users.findIndex((member) => member.userProfile.userId === ownerId)
+    if (ownerIndex > 0) users.unshift(...users.splice(ownerIndex, 1))
+  }
+  return {
+    familyCode,
+    country: typeof value.country === 'string' ? value.country : '',
+    startDate: start.date,
+    endDate: end.date,
+    startTime: start.time,
+    endTime: end.time,
+    startCity:
+      typeof value.startCity === 'string'
+        ? value.startCity
+        : typeof value.arrivalCity === 'string'
+          ? value.arrivalCity
+          : '',
+    endCity:
+      typeof value.endCity === 'string'
+        ? value.endCity
+        : typeof value.departureCity === 'string'
+          ? value.departureCity
+          : '',
+    users,
+  }
+}
+
+async function getFamily(env: Env, familyCode: string): Promise<TravelFamily | null> {
+  const key = familyKey(familyCode)
+  const stored = await getStored<unknown>(env, key)
+  if (!stored) return null
+  const family = normalizeFamily(stored, familyCode)
+  if (JSON.stringify(stored) !== JSON.stringify(family)) {
+    await executeRecordTool<MutateActionData>(env, 'records.update', {
+      collection: 'travel-families',
+      recordId: familyCode,
+      data: family,
+    })
+  }
+  return family
+}
+
+function memberFor(user: TravelUser): FamilyMember {
   return {
     userProfile: {
       userId: user.userId,
       name: user.name,
       email: user.email,
-      emailVerified: user.emailVerified,
-      organizer,
-      avatar: user.avatar,
     },
-    userTravelProfile: {},
+    userTravelProfile: emptyTravelProfile(),
   }
 }
 
 async function persistFamily(env: Env, family: TravelFamily): Promise<void> {
-  await putStored(env, familyKey(family.family_code), family)
+  await putStored(env, familyKey(family.familyCode), family)
+}
+
+function frontendDateTime(date: string, time: string): string {
+  const [, year, month, day] = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(date) ?? []
+  if (!year || !month || !day) return date
+  if (!time) return `${Number(month)}/${Number(day)}/${year}`
+  const [, hourText, minute] = /^([01]\d|2[0-3]):([0-5]\d)$/u.exec(time) ?? []
+  if (!hourText || !minute) return date
+  const hour = Number(hourText)
+  return `${Number(month)}/${Number(day)}/${year}, ${hour % 12 || 12}:${minute} ${hour < 12 ? 'AM' : 'PM'}`
+}
+
+function frontendTravelProfile(profile: Record<string, unknown>): Record<string, unknown> {
+  const { activityPopularity, ...preferences } = profile
+  return { ...preferences, attractionPopularity: activityPopularity }
 }
 
 function familyResponse(family: TravelFamily, includeMembers = true) {
   return {
-    family_code: family.family_code,
+    family_code: family.familyCode,
     country: family.country,
-    startDate: family.startDate,
-    endDate: family.endDate,
-    arrivalCity: family.arrivalCity ?? '',
-    departureCity: family.departureCity ?? '',
-    users: includeMembers ? family.users : [],
+    startDate: frontendDateTime(family.startDate, family.startTime),
+    endDate: frontendDateTime(family.endDate, family.endTime),
+    arrivalCity: family.startCity,
+    departureCity: family.endCity,
+    users: includeMembers
+      ? family.users.map((member) => ({
+          userProfile: member.userProfile,
+          userTravelProfile: frontendTravelProfile(member.userTravelProfile),
+        }))
+      : [],
   }
 }
 
@@ -410,7 +678,7 @@ async function requireFamilyMember(
   familyCode: string,
   userId: string,
 ): Promise<{ family: TravelFamily } | { response: Response }> {
-  const family = await getStored<TravelFamily>(c.env, familyKey(familyCode))
+  const family = await getFamily(c.env, familyCode)
   if (!family) return { response: jsonError(c, 'That family code was not found.', 404) }
   if (!family.users.some((member) => member.userProfile.userId === userId)) {
     return { response: jsonError(c, 'You are not a member of this family.', 403) }
@@ -419,7 +687,7 @@ async function requireFamilyMember(
 }
 
 export function registerTravelRoutes(app: Hono<AppContext>): void {
-  for (const path of ['/auth/*', '/users/*', '/families/*']) {
+  for (const path of ['/auth/*', '/users/*', '/families/*', '/travel/families/*']) {
     app.use(path, async (c, next) => {
       c.header('Cache-Control', 'no-store')
       await next()
@@ -614,12 +882,11 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     await putStored(c.env, userKey(userId), user)
     await Promise.all(
       user.families.map(async (familyCode) => {
-        const family = await getStored<TravelFamily>(c.env, familyKey(familyCode))
+        const family = await getFamily(c.env, familyCode)
         if (!family) return
         const member = family.users.find((entry) => entry.userProfile.userId === userId)
         if (!member) return
         member.userProfile.name = user.name
-        member.userProfile.avatar = user.avatar
         await persistFamily(c.env, family)
       }),
     )
@@ -634,7 +901,7 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     const user = await getStored<TravelUser>(c.env, userKey(userId))
     if (!user) return c.json([])
     const families = await Promise.all(
-      user.families.map((code) => getStored<TravelFamily>(c.env, familyKey(code))),
+      user.families.map((code) => getFamily(c.env, code)),
     )
     return c.json(
       families
@@ -648,23 +915,8 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     const result = await currentSession(c)
     if ('response' in result) return result.response
     const body = await readJsonBody(c)
-    if (
-      !body ||
-      typeof body.country !== 'string' ||
-      !body.country.trim() ||
-      body.country.trim().length > 120 ||
-      typeof body.startDate !== 'string' ||
-      typeof body.endDate !== 'string' ||
-      (body.arrivalCity !== undefined &&
-        (typeof body.arrivalCity !== 'string' || body.arrivalCity.length > 120)) ||
-      (body.departureCity !== undefined &&
-        (typeof body.departureCity !== 'string' || body.departureCity.length > 120)) ||
-      !body.startDate.trim() ||
-      !body.endDate.trim() ||
-      !Number.isFinite(Date.parse(body.startDate)) ||
-      !Number.isFinite(Date.parse(body.endDate)) ||
-      Date.parse(body.endDate) <= Date.parse(body.startDate)
-    ) {
+    const details = body ? familyDetailsFromBody(body) : null
+    if (!details) {
       return jsonError(c, 'Country and valid trip dates are required, and the end must be after the start.', 400)
     }
     const user = await getStored<TravelUser>(c.env, userKey(result.session.userId))
@@ -675,38 +927,33 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       crypto.getRandomValues(random)
       const candidate = String(random[0] % 10_000).padStart(4, '0')
       const candidateFamily: TravelFamily = {
-        family_code: candidate,
-        family_id: candidate,
-        country: body.country.trim(),
-        startDate: body.startDate.trim(),
-        endDate: body.endDate.trim(),
-        arrivalCity: typeof body.arrivalCity === 'string' ? body.arrivalCity.trim() : '',
-        departureCity: typeof body.departureCity === 'string' ? body.departureCity.trim() : '',
-        ownerId: user.userId,
-        users: [memberFor(user, true)],
+        familyCode: candidate,
+        ...details,
+        users: [memberFor(user)],
       }
       try {
         await createStored(c.env, familyKey(candidate), candidateFamily)
         family = candidateFamily
         break
       } catch (error) {
-        if (!(await getStored<TravelFamily>(c.env, familyKey(candidate)))) throw error
+        if (!(await getFamily(c.env, candidate))) throw error
       }
     }
     if (!family) return jsonError(c, 'Could not create a unique family code. Try again.', 503)
-    user.families = [...new Set([...user.families, family.family_code])]
+    user.families = [...new Set([...user.families, family.familyCode])]
     await putStored(c.env, userKey(user.userId), user)
-    return c.json({ family_code: family.family_code })
+    return c.json({ family_code: family.familyCode })
   })
 
   app.post('/families/lookup', async (c) => {
     const result = await currentSession(c)
     if ('response' in result) return result.response
     const body = await readJsonBody(c)
-    if (!body || !validFamilyCode(body.family_code)) {
+    const familyCode = body?.familyCode ?? body?.family_code
+    if (!validFamilyCode(familyCode)) {
       return jsonError(c, 'Enter a valid 4-digit family code.', 400)
     }
-    const family = await getStored<TravelFamily>(c.env, familyKey(body.family_code))
+    const family = await getFamily(c.env, familyCode)
     if (!family) return jsonError(c, 'That family code was not found. Check it and try again.', 404)
     const isMember = family.users.some(
       (member) => member.userProfile.userId === result.session.userId,
@@ -719,19 +966,20 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     const result = await currentSession(c)
     if ('response' in result) return result.response
     const body = await readJsonBody(c)
-    if (!body || !validFamilyCode(body.family_code)) {
+    const familyCode = body?.familyCode ?? body?.family_code
+    if (!body || !validFamilyCode(familyCode)) {
       return jsonError(c, 'Enter a valid 4-digit family code.', 400)
     }
     if (body.userId !== result.session.userId) return jsonError(c, 'Not authorized.', 401)
-    const family = await getStored<TravelFamily>(c.env, familyKey(body.family_code))
+    const family = await getFamily(c.env, familyCode)
     if (!family) return jsonError(c, 'That family code was not found. Check it and try again.', 404)
     const user = await getStored<TravelUser>(c.env, userKey(result.session.userId))
     if (!user) return jsonError(c, 'Sign in again to join this trip.', 401)
     if (!family.users.some((member) => member.userProfile.userId === user.userId)) {
-      family.users.push(memberFor(user, false))
+      family.users.push(memberFor(user))
       await persistFamily(c.env, family)
     }
-    user.families = [...new Set([...user.families, family.family_code])]
+    user.families = [...new Set([...user.families, family.familyCode])]
     await putStored(c.env, userKey(user.userId), user)
     return c.json({ success: true })
   })
@@ -742,34 +990,21 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     if ('response' in result) return result.response
     const code = c.req.param('familyId')
     if (!validFamilyCode(code)) return jsonError(c, 'Family not found.', 404)
-    const family = await getStored<TravelFamily>(c.env, familyKey(code))
+    const family = await getFamily(c.env, code)
     if (!family) return jsonError(c, 'Family not found.', 404)
     const body = await readJsonBody(c)
-    if (!body || body.userId !== result.session.userId || family.ownerId !== result.session.userId) {
+    if (
+      !body ||
+      body.userId !== result.session.userId ||
+      family.users[0]?.userProfile.userId !== result.session.userId
+    ) {
       return jsonError(c, 'Only the trip creator can change the trip details.', 401)
     }
-    if (
-      typeof body.country !== 'string' ||
-      !body.country.trim() ||
-      typeof body.startDate !== 'string' ||
-      typeof body.endDate !== 'string' ||
-      (body.arrivalCity !== undefined &&
-        (typeof body.arrivalCity !== 'string' || body.arrivalCity.length > 120)) ||
-      (body.departureCity !== undefined &&
-        (typeof body.departureCity !== 'string' || body.departureCity.length > 120)) ||
-      !body.startDate.trim() ||
-      !body.endDate.trim() ||
-      !Number.isFinite(Date.parse(body.startDate)) ||
-      !Number.isFinite(Date.parse(body.endDate)) ||
-      Date.parse(body.endDate) <= Date.parse(body.startDate)
-    ) {
+    const details = familyDetailsFromBody(body)
+    if (!details) {
       return jsonError(c, 'Country and valid trip dates are required, and the end must be after the start.', 400)
     }
-    family.country = body.country.trim()
-    family.startDate = body.startDate.trim()
-    family.endDate = body.endDate.trim()
-    family.arrivalCity = typeof body.arrivalCity === 'string' ? body.arrivalCity.trim() : ''
-    family.departureCity = typeof body.departureCity === 'string' ? body.departureCity.trim() : ''
+    Object.assign(family, details)
     await persistFamily(c.env, family)
     return c.json({ success: true })
   })
@@ -785,7 +1020,9 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     const access = await requireFamilyMember(c, familyCode, userId)
     if ('response' in access) return access.response
     const member = access.family.users.find((entry) => entry.userProfile.userId === userId)
-    return c.json({ userTravelProfile: member?.userTravelProfile ?? null })
+    return c.json({
+      userTravelProfile: member ? frontendTravelProfile(member.userTravelProfile) : null,
+    })
   })
 
   app.put('/families/:familyId/members/:userId/travel-profile', async (c) => {
@@ -810,8 +1047,98 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     if ('response' in access) return access.response
     const member = access.family.users.find((entry) => entry.userProfile.userId === userId)
     if (!member) return jsonError(c, 'Family member not found.', 404)
-    member.userTravelProfile = body.userTravelProfile as Record<string, unknown>
+    member.userTravelProfile = normalizeTravelProfile(body.userTravelProfile)
     await persistFamily(c.env, access.family)
     return c.json({ success: true })
   })
+
+  const generatePlan = async (c: Context<AppContext>) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+
+    const familyId = c.req.param('familyId')
+    if (!validFamilyCode(familyId)) return jsonError(c, 'Family not found.', 404)
+
+    const body = await readJsonBody(c)
+    if (!body || typeof body.requestedBy !== 'string' || !body.requestedBy.trim()) {
+      return jsonError(c, 'A requesting user is required.', 400)
+    }
+
+    const family = await getFamily(c.env, familyId)
+    if (!family) return jsonError(c, 'Family not found.', 404)
+    const creatorId = family.users[0]?.userProfile.userId
+    if (
+      !creatorId ||
+      body.requestedBy !== creatorId ||
+      result.session.userId !== creatorId ||
+      body.requestedBy !== result.session.userId
+    ) {
+      return jsonError(c, 'Only the trip creator can generate the plan.', 403)
+    }
+
+    const apiKey = c.env.GEMINI_API_KEY?.trim()
+    if (!apiKey) return jsonError(c, 'Trip planning is not configured.', 503)
+
+    let interactionId: string
+    try {
+      interactionId = await generateTripPlan(family, apiKey)
+    } catch (error) {
+      console.error('Trip plan generation failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The trip planning service could not generate a plan.', 502)
+    }
+    const secret = sessionSecret(c.env)
+    if (!secret) {
+      return jsonError(c, 'Auth0 session signing is not configured. Set AUTH0_SESSION_SECRET.', 503)
+    }
+    const interactionToken = await seal<TripPlanToken>(secret, {
+      interactionId,
+      familyCode: familyId,
+      userId: result.session.userId,
+      expiresAt: Date.now() + 60 * 60 * 1000,
+    })
+    return c.json({ interactionToken }, 202)
+  }
+
+  const pollPlan = async (c: Context<AppContext>) => {
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+
+    const familyCode = c.req.param('familyId')
+    const interactionToken = c.req.param('interactionToken')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const secret = sessionSecret(c.env)
+    if (!secret) {
+      return jsonError(c, 'Auth0 session signing is not configured. Set AUTH0_SESSION_SECRET.', 503)
+    }
+    const token = await unseal<TripPlanToken>(secret, interactionToken)
+    if (!token || token.familyCode !== familyCode || token.userId !== result.session.userId) {
+      return jsonError(c, 'That itinerary request is invalid or expired.', 403)
+    }
+    const family = await getFamily(c.env, familyCode)
+    if (!family) return jsonError(c, 'Family not found.', 404)
+    if (family.users[0]?.userProfile.userId !== result.session.userId) {
+      return jsonError(c, 'Only the trip creator can generate the plan.', 403)
+    }
+    const apiKey = c.env.GEMINI_API_KEY?.trim()
+    if (!apiKey) return jsonError(c, 'Trip planning is not configured.', 503)
+
+    let response: Awaited<ReturnType<typeof getTripPlan>>
+    try {
+      response = await getTripPlan(token.interactionId, apiKey)
+    } catch (error) {
+      console.error('Trip plan status check failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The trip planning service could not retrieve the plan.', 502)
+    }
+    if (response.status === 'in_progress') return c.json({ status: response.status }, 202)
+    if (!isGeneratedTripPlan(response.plan)) {
+      console.error('Gemini returned an itinerary with an invalid shape.')
+      return jsonError(c, 'The trip planning service returned an invalid plan.', 502)
+    }
+    return c.json(response.plan)
+  }
+  app.post('/families/:familyId/plan', generatePlan)
+  app.get('/families/:familyId/plan/:interactionToken', pollPlan)
+  app.post('/travel/families/:familyId/plan', generatePlan)
+  app.get('/travel/families/:familyId/plan/:interactionToken', pollPlan)
 }

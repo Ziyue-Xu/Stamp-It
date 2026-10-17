@@ -3,7 +3,8 @@
 The travel UI is available at `/travel` on the DeepSpace app. Its Vite entry
 imports the existing `my-travel-app` screens and API modules without changing
 that project. Its API calls are redirected at build time to same-origin
-DeepSpace Worker routes; the local Flask server is not needed in production.
+DeepSpace Worker routes. The local account-creation Flask server is not used
+by the production travel app.
 
 Members sign in with Auth0's email passwordless OTP connection. The Worker
 redeems the code with Auth0, requires a verified matching email, and issues a
@@ -17,6 +18,41 @@ The private collections are accessed only by the Worker after Auth0 session
 and family-membership checks; browser record permissions deny direct access.
 This uses the app's existing Durable Object binding and requires no custom
 Cloudflare binding, so it is compatible with the free DeepSpace tier.
+
+Each stored `travel-families` record follows the AIPipeline family template:
+`familyCode`, `country`, separate ISO `startDate`/`endDate` and 24-hour
+`startTime`/`endTime`, `startCity`, `endCity`, and `users`. Member profiles
+store only `userId`, `name`, and `email`; travel preferences use the template's
+`activityPopularity` key. The Worker adapts the existing travel UI's request
+and response format at the API boundary, and normalizes older family records
+when it reads them. The first user in `users` is the trip creator.
+
+## Configure the AI trip planner
+
+Plan generation runs entirely in the DeepSpace Worker. It loads family
+preferences from the private DeepSpace record, verifies the signed-in user is
+the trip creator, and starts a background Gemini Interaction with Google Maps
+grounding and a structured itinerary schema. The DeepSpace travel wrapper polls
+the Worker until the itinerary is ready; a signed, expiring token binds polling
+to that creator and family. This avoids holding one HTTP request open during
+long generations. Background interactions require server-side storage for
+polling; this integration opts into Gemini's seven-day interaction retention.
+The API key is read only by the Worker and is never sent to the browser.
+
+Set the API key in the DeepSpace encrypted secrets store, then deploy to apply
+it to the Worker:
+
+```powershell
+$geminiKey = Read-Host "Gemini API key" -AsSecureString
+[System.Net.NetworkCredential]::new("", $geminiKey).Password | npx.cmd deepspace secrets set GEMINI_API_KEY --stdin
+Remove-Variable geminiKey
+npx.cmd deepspace deploy
+```
+
+The key is entered securely in PowerShell and piped to the CLI without placing
+it in command history or a command-line argument. Do not put the key in source
+files, frontend environment variables, or `.dev.vars`. Plan generation returns
+503 until `GEMINI_API_KEY` is configured.
 
 ## Configure Auth0
 
@@ -61,7 +97,7 @@ npx.cmd deepspace secrets list --json
 npx.cmd deepspace deploy
 ```
 
-The `secrets list` result should show all three names before deploying.
-Deployment builds and tests already pass locally. Open `/travel` on the
-deployed app. Deployment requires an authenticated DeepSpace CLI account with
-deploy access.
+The `secrets list` result should show `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`,
+`AUTH0_SESSION_SECRET`, and `GEMINI_API_KEY` before deploying. Open `/travel`
+on the deployed app. Deployment requires an authenticated DeepSpace CLI
+account with deploy access.
