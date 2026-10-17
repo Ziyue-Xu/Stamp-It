@@ -11,8 +11,6 @@ import { savePlan, resetPlan, requestAlternative } from "../api/planApi";
 import {
   canSplitStop,
   splitStopOf,
-  splitOffStop,
-  addAlternativeTrack,
   removeAlternativeTrack,
   pickTrack,
 } from "../api/splitEdit";
@@ -282,7 +280,7 @@ function StopCard({ item, open, onToggle, onEdit, onSplit, splitting }) {
   );
 }
 
-function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onReload, onBack }) {
+function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerate, onReload, onBack }) {
   const [dayIndex, setDayIndex] = useState(0);
   const [openTips, setOpenTips] = useState({});
   const [editingId, setEditingId] = useState(null);
@@ -301,7 +299,9 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onReload,
     onPlanChange(newPlan);
     setSaveState("saving");
     try {
-      const where = await savePlan(trip.familyId, profile.userId, newPlan);
+      const where = onSavePlan
+        ? await onSavePlan(newPlan)
+        : await savePlan(trip.familyId, profile.userId, newPlan);
       setSaveState(where === "device" ? "device" : "saved");
     } catch (problem) {
       setSaveState("failed");
@@ -349,19 +349,14 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onReload,
     setSplittingId(itemId);
     setSplitError("");
     try {
-      const alternative = await requestAlternative({
+      const updatedPlan = await requestAlternative({
         familyId: trip.familyId,
         userId: profile.userId,
         stop,
         day,
-        currency,
       });
-      const person = { userId: profile.userId, name: profile.name };
-      const items =
-        target.type === "split"
-          ? addAlternativeTrack(day.items, itemId, alternative, person)
-          : splitOffStop(day.items, itemId, alternative, person);
-      commit(planWithDayItems(items));
+      onPlanChange(updatedPlan);
+      setSaveState("saved");
     } catch (problem) {
       setSplitError(problem.message || "Could not find an alternative. Please try again.");
     }

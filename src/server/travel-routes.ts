@@ -1,7 +1,7 @@
 import type { Context, Hono } from 'hono'
 import type { ActionResult, GetActionData, MutateActionData } from 'deepspace/worker'
 import type { AppContext, Env } from '../../worker.js'
-import { generateTripPlan, getTripPlan } from './trip-planner.js'
+import { generateTripPlan, generateTripSplit, getTripPlan } from './trip-planner.js'
 
 const SESSION_COOKIE = 'travel_session'
 const PENDING_COOKIE = 'travel_pending'
@@ -26,6 +26,16 @@ interface TripPlanToken {
   interactionId: string
   familyCode: string
   userId: string
+  expiresAt: number
+}
+
+interface TripSplitToken {
+  interactionId: string
+  familyCode: string
+  userId: string
+  dayNumber: number
+  itemId: string
+  sourceDigest: string
   expiresAt: number
 }
 
@@ -144,6 +154,406 @@ function isEditableTravelPlan(value: unknown): value is Record<string, unknown> 
         day.items.every((item) => isRecord(item) && typeof item.id === 'string'),
     )
   )
+}
+
+function isGeneratedSplitPatch(value: unknown, dayNumber: number): value is Record<string, unknown> {
+  if (!isRecord(value) || !Array.isArray(value.days) || value.days.length !== 1) return false
+  const day = value.days[0]
+  if (
+    !isRecord(day) ||
+    day.day_number !== dayNumber ||
+    !Array.isArray(day.splits) ||
+    day.splits.length !== 1
+  ) {
+    return false
+  }
+  const split = day.splits[0]
+  if (
+    !isRecord(split) ||
+    typeof split.id !== 'string' ||
+    typeof split.start_time !== 'string' ||
+    typeof split.end_time !== 'string' ||
+    typeof split.reason !== 'string' ||
+    typeof split.rejoin_time !== 'string' ||
+    !isRecord(split.rejoin_location) ||
+    typeof split.rejoin_location.name !== 'string' ||
+    !(typeof split.rejoin_location.address === 'string' || split.rejoin_location.address === null) ||
+    !Array.isArray(split.branches) ||
+    split.branches.length === 0
+  ) {
+    return false
+  }
+  return split.branches.every(
+    (branch) =>
+      isRecord(branch) &&
+      typeof branch.id === 'string' &&
+      typeof branch.label === 'string' &&
+      (branch.traveler_ids === null ||
+        (Array.isArray(branch.traveler_ids) &&
+          branch.traveler_ids.every((userId) => typeof userId === 'string'))) &&
+      Array.isArray(branch.timeline) &&
+      branch.timeline.length > 0 &&
+      branch.timeline.every(isGeneratedTimelineItem),
+  )
+}
+
+function isGeneratedTimelineItem(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    ['lodging', 'activity', 'meal', 'transit'].includes(String(value.item_type)) &&
+    typeof value.title === 'string' &&
+    typeof value.start_time === 'string' &&
+    typeof value.end_time === 'string' &&
+    (typeof value.duration_minutes === 'number' || value.duration_minutes === null) &&
+    (value.location === null ||
+      (isRecord(value.location) &&
+        typeof value.location.name === 'string' &&
+        (typeof value.location.address === 'string' || value.location.address === null))) &&
+    (value.transit_details === null || isRecord(value.transit_details)) &&
+    (value.notes_and_tips === null ||
+      (Array.isArray(value.notes_and_tips) &&
+        value.notes_and_tips.every((tip) => typeof tip === 'string'))) &&
+    (value.estimated_cost === null ||
+      (isRecord(value.estimated_cost) &&
+        typeof value.estimated_cost.amount === 'number' &&
+        typeof value.estimated_cost.currency === 'string' &&
+        typeof value.estimated_cost.is_per_person === 'boolean'))
+  )
+}
+
+function frontendItemFromGenerated(value: Record<string, unknown>): Record<string, unknown> {
+  const location = isRecord(value.location) ? value.location : null
+  const transit = isRecord(value.transit_details) ? value.transit_details : null
+  const rawCost = isRecord(value.estimated_cost) ? value.estimated_cost : null
+  const cost =
+    rawCost && typeof rawCost.amount === 'number' && typeof rawCost.currency === 'string'
+      ? { amount: rawCost.amount, currency: rawCost.currency }
+      : null
+  return {
+    id: String(value.id),
+    type: typeof value.item_type === 'string' ? value.item_type : 'activity',
+    title: typeof value.title === 'string' ? value.title : '',
+    start: typeof value.start_time === 'string' ? value.start_time : '',
+    end: typeof value.end_time === 'string' ? value.end_time : '',
+    minutes: typeof value.duration_minutes === 'number' ? value.duration_minutes : null,
+    place: typeof location?.name === 'string' ? location.name : '',
+    address: typeof location?.address === 'string' ? location.address : '',
+    transit: transit
+      ? {
+          mode: typeof transit.mode === 'string' ? transit.mode : '',
+          line: typeof transit.provider_or_line === 'string' ? transit.provider_or_line : '',
+          km: typeof transit.distance_km === 'number' ? transit.distance_km : null,
+        }
+      : null,
+    tips: Array.isArray(value.notes_and_tips) ? value.notes_and_tips : [],
+    cost,
+    addedBy: null,
+  }
+}
+
+function frontendPlanFromGenerated(
+  value: Record<string, unknown>,
+  family: TravelFamily,
+): Record<string, unknown> {
+  const tripTitle = typeof value.trip_title === 'string' ? value.trip_title : 'Your itinerary'
+  const titleSeparator = tripTitle.indexOf(':')
+  const days = (value.days as Record<string, unknown>[]).map((rawDay) => {
+    const timeline = rawDay.timeline as Record<string, unknown>[]
+    const items = timeline.map(frontendItemFromGenerated)
+    const total = frontendItemsTotal(items)
+    return {
+      dayNumber: rawDay.day_number,
+      date: rawDay.date,
+      city: rawDay.base_city,
+      theme: rawDay.day_theme_or_summary,
+      total,
+      items,
+    }
+  })
+  const total = frontendItemsTotal(days.flatMap((day) => day.items as Record<string, unknown>[]))
+  const cities: { name: string; days: number }[] = []
+  for (const day of days) {
+    const name = String(day.city ?? '')
+    const previous = cities[cities.length - 1]
+    if (previous?.name === name) previous.days += 1
+    else cities.push({ name, days: 1 })
+  }
+  return {
+    title: titleSeparator < 0 ? tripTitle : tripTitle.slice(0, titleSeparator).trim(),
+    subtitle: titleSeparator < 0 ? '' : tripTitle.slice(titleSeparator + 1).trim(),
+    startDate: value.start_date,
+    endDate: value.end_date,
+    cities,
+    total,
+    notes: [],
+    days,
+  }
+}
+
+function editablePlanFromStored(
+  stored: { format?: string; plan: unknown },
+  family: TravelFamily,
+): Record<string, unknown> | null {
+  if (stored.format === 'travel-app') {
+    return isEditableTravelPlan(stored.plan) ? stored.plan : null
+  }
+  return isGeneratedTripPlan(stored.plan)
+    ? frontendPlanFromGenerated(stored.plan, family)
+    : null
+}
+
+function frontendItemsTotal(items: Record<string, unknown>[]): { amount: number; currency: string } | null {
+  let amount = 0
+  let currency = ''
+  for (const item of items) {
+    if (!isRecord(item.cost) || typeof item.cost.amount !== 'number') continue
+    amount += item.cost.amount
+    if (!currency && typeof item.cost.currency === 'string') currency = item.cost.currency
+  }
+  return currency ? { amount, currency } : null
+}
+
+function frontendItemToGenerated(item: Record<string, unknown>): Record<string, unknown> {
+  const location =
+    typeof item.place === 'string' && item.place
+      ? { name: item.place, address: typeof item.address === 'string' && item.address ? item.address : null }
+      : null
+  const transit = isRecord(item.transit) ? item.transit : null
+  const cost = isRecord(item.cost) ? item.cost : null
+  return {
+    id: item.id,
+    item_type: item.type,
+    title: item.title,
+    start_time: item.start,
+    end_time: item.end,
+    duration_minutes: item.minutes ?? null,
+    location,
+    transit_details: transit
+      ? {
+          mode: transit.mode ?? 'walking',
+          provider_or_line: transit.line ?? null,
+          route_number: null,
+          distance_km: transit.km ?? null,
+        }
+      : null,
+    estimated_cost:
+      cost && typeof cost.amount === 'number'
+        ? {
+            amount: cost.amount,
+            currency: typeof cost.currency === 'string' ? cost.currency : 'EUR',
+            is_per_person: true,
+          }
+        : null,
+    notes_and_tips: Array.isArray(item.tips) ? item.tips : [],
+  }
+}
+
+function frontendDayForSplitPrompt(
+  day: Record<string, unknown>,
+  dayNumber: number,
+): Record<string, unknown> {
+  if (Array.isArray(day.timeline)) return day
+  const items = Array.isArray(day.items) ? day.items.filter(isRecord) : []
+  const timeline = items
+    .filter((item) => item.type !== 'split')
+    .map(frontendItemToGenerated)
+  const splits = items
+    .filter((item) => item.type === 'split')
+    .map((item) => ({
+      id: item.id,
+      start_time: item.start,
+      end_time: item.end,
+      reason: typeof item.reason === 'string' ? item.reason : '',
+      branches: Array.isArray(item.groups)
+        ? item.groups.filter(isRecord).map((group) => ({
+            id: group.id,
+            label: group.label,
+            traveler_ids: Array.isArray(group.members)
+              ? group.members.filter(isRecord).map((member) => member.userId)
+              : [],
+            timeline: Array.isArray(group.items)
+              ? group.items.filter(isRecord).map(frontendItemToGenerated)
+              : [],
+          }))
+        : [],
+      rejoin_time: isRecord(item.regroup) ? item.regroup.time : item.end,
+      rejoin_location: isRecord(item.regroup)
+        ? { name: item.regroup.place, address: item.regroup.address || null }
+        : { name: '', address: null },
+    }))
+  return {
+    day_number: dayNumber,
+    date: day.date,
+    base_city: day.city,
+    day_theme_or_summary: day.theme,
+    timeline,
+    splits,
+  }
+}
+
+function sourceItemInDay(
+  day: Record<string, unknown>,
+  itemId: string,
+): { source: Record<string, unknown>; split: Record<string, unknown> | null } | null {
+  if (!Array.isArray(day.items)) return null
+  const items = day.items.filter(isRecord)
+  const direct = items.find((item) => item.id === itemId)
+  if (direct && (direct.type === 'activity' || direct.type === 'meal')) {
+    return { source: direct, split: null }
+  }
+  for (const item of items) {
+    if (item.type !== 'split' || !Array.isArray(item.groups)) continue
+    for (const rawGroup of item.groups) {
+      if (!isRecord(rawGroup) || !Array.isArray(rawGroup.items)) continue
+      const source = rawGroup.items.filter(isRecord).find((candidate) => candidate.id === itemId)
+      if (source && (source.type === 'activity' || source.type === 'meal')) {
+        return { source, split: item }
+      }
+    }
+  }
+  return null
+}
+
+function splitAlreadyOwnedBy(
+  day: Record<string, unknown>,
+  itemId: string,
+  userId: string,
+): boolean {
+  if (!Array.isArray(day.items)) return false
+  return day.items.filter(isRecord).some(
+    (item) =>
+      item.type === 'split' &&
+      Array.isArray(item.groups) &&
+      item.groups.filter(isRecord).some(
+        (group) =>
+          group.ownerId === userId &&
+          Array.isArray(group.items) &&
+          group.items.filter(isRecord).some((source) => source.id === itemId),
+      ),
+  )
+}
+
+function mergeGeneratedSplit(
+  plan: Record<string, unknown>,
+  dayIndex: number,
+  itemId: string,
+  user: FamilyMember,
+  family: TravelFamily,
+  patchSplit: Record<string, unknown>,
+): Record<string, unknown> {
+  const days = plan.days as Record<string, unknown>[]
+  const day = days[dayIndex]
+  const sourceResult = sourceItemInDay(day, itemId)
+  if (!sourceResult || !Array.isArray(day.items)) throw new Error('The activity is no longer in this itinerary.')
+  const { source, split: existingSplit } = sourceResult
+  const rawBranches = patchSplit.branches as Record<string, unknown>[]
+  const requestedBranch =
+    rawBranches.find(
+      (branch) =>
+        Array.isArray(branch.traveler_ids) && branch.traveler_ids.includes(user.userProfile.userId),
+    ) ?? rawBranches[0]
+  const sourceSplitId =
+    existingSplit && typeof existingSplit.id === 'string' ? existingSplit.id : `split-${itemId}`
+  const branchId = `alt-${encodeURIComponent(user.userProfile.userId)}`
+  const newBranchItems = (requestedBranch.timeline as Record<string, unknown>[]).map((item, index) => ({
+    ...frontendItemFromGenerated(item),
+    id: `${branchId}-${index + 1}`,
+  }))
+  const regroupLocation = isRecord(patchSplit.rejoin_location) ? patchSplit.rejoin_location : {}
+  const newGroup = {
+    id: branchId,
+    kind: 'alt',
+    label: requestedBranch.label || 'Alternative',
+    ownerId: user.userProfile.userId,
+    ownerName: user.userProfile.name,
+    members: Array.isArray(requestedBranch.traveler_ids)
+      ? requestedBranch.traveler_ids.flatMap((userId): { userId: string; name: string }[] => {
+          if (typeof userId !== 'string') return []
+          const familyMember = family.users.find((member) => member.userProfile.userId === userId)
+          return familyMember ? [{ userId, name: familyMember.userProfile.name }] : []
+        })
+      : [],
+    items: newBranchItems,
+  }
+  const split: Record<string, unknown> = existingSplit
+    ? {
+        ...existingSplit,
+        reason: typeof patchSplit.reason === 'string' ? patchSplit.reason : existingSplit.reason,
+        picks: {
+          ...(isRecord(existingSplit.picks) ? existingSplit.picks : {}),
+          [user.userProfile.userId]: branchId,
+        },
+        groups: [...(Array.isArray(existingSplit.groups) ? existingSplit.groups : []), newGroup],
+      }
+    : {
+        id: sourceSplitId,
+        type: 'split',
+        origin: 'stop',
+        title: source.title,
+        reason: patchSplit.reason,
+        start: source.start,
+        end: source.end,
+        minutes: source.minutes ?? null,
+        place: '',
+        address: '',
+        transit: null,
+        tips: [],
+        cost: source.cost ?? null,
+        addedBy: null,
+        regroup: {
+          place: typeof regroupLocation.name === 'string' ? regroupLocation.name : '',
+          address: typeof regroupLocation.address === 'string' ? regroupLocation.address : '',
+          time: typeof patchSplit.rejoin_time === 'string' ? patchSplit.rejoin_time : source.end,
+        },
+        defaultGroup: `original-${itemId}`,
+        picks: { [user.userProfile.userId]: branchId },
+        groups: [
+          {
+            id: `original-${itemId}`,
+            kind: 'original',
+            label: '',
+            ownerId: null,
+            ownerName: '',
+            members: [],
+            items: [source],
+          },
+          newGroup,
+        ],
+      }
+  const updatedItems = existingSplit
+    ? (day.items as Record<string, unknown>[]).map((item) => (item.id === existingSplit.id ? split : item))
+    : (day.items as Record<string, unknown>[]).map((item) => (item.id === itemId ? split : item))
+  const updatedDay: Record<string, unknown> = { ...day, items: updatedItems }
+  const updatedDays: Record<string, unknown>[] = days.map((entry, index) =>
+    index === dayIndex ? updatedDay : entry,
+  )
+  const updatedPlan = { ...plan, days: updatedDays }
+  const allItems = updatedDays.flatMap((entry) =>
+    Array.isArray(entry.items) ? (entry.items as Record<string, unknown>[]) : [],
+  )
+  const cities: { name: string; days: number }[] = []
+  for (const entry of updatedDays) {
+    const name = String(entry.city ?? '')
+    const previous = cities[cities.length - 1]
+    if (previous?.name === name) previous.days += 1
+    else cities.push({ name, days: 1 })
+  }
+  return {
+    ...updatedPlan,
+    days: updatedDays.map((entry) => ({
+      ...entry,
+      total: frontendItemsTotal(Array.isArray(entry.items) ? entry.items as Record<string, unknown>[] : []),
+    })),
+    cities,
+    total: frontendItemsTotal(allItems),
+  }
+}
+
+async function valueDigest(value: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(value))
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return encodeBase64Url(digest)
 }
 
 function jsonError(
@@ -1262,6 +1672,193 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     }
     return c.json(response.plan)
   }
+  const generateSplit = async (c: Context<AppContext>) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+
+    const familyCode = c.req.param('familyId')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const body = await readJsonBody(c)
+    if (
+      !body ||
+      body.requestedBy !== result.session.userId ||
+      typeof body.itemId !== 'string' ||
+      !body.itemId ||
+      body.itemId.length > 200 ||
+      typeof body.dayNumber !== 'number' ||
+      !Number.isInteger(body.dayNumber) ||
+      body.dayNumber < 1
+    ) {
+      return jsonError(c, 'Expected a requesting user, day number, and activity ID.', 400)
+    }
+    const access = await requireFamilyMember(c, familyCode, result.session.userId)
+    if ('response' in access) return access.response
+    const user = access.family.users.find(
+      (member) => member.userProfile.userId === result.session.userId,
+    )
+    if (!user) return jsonError(c, 'Family member not found.', 404)
+
+    const stored = await getStored<{ familyCode: string; format?: string; plan: unknown }>(
+      c.env,
+      planKey(familyCode),
+    )
+    if (!stored) return jsonError(c, 'No saved trip plan was found.', 404)
+    if (stored.familyCode !== familyCode) {
+      console.error('Stored trip plan has an invalid shape for split generation.')
+      return jsonError(c, 'The saved trip plan is invalid.', 500)
+    }
+    const editablePlan = editablePlanFromStored(stored, access.family)
+    if (!editablePlan) {
+      console.error('Stored trip plan has an invalid shape for split generation.')
+      return jsonError(c, 'The saved trip plan is invalid.', 500)
+    }
+    if (!Array.isArray(editablePlan.days)) {
+      return jsonError(c, 'The saved trip plan has no itinerary days.', 500)
+    }
+    const day = editablePlan.days
+      .filter(isRecord)
+      .find((entry) => entry.dayNumber === body.dayNumber)
+    if (!day) return jsonError(c, 'That itinerary day was not found.', 404)
+    const sourceResult = sourceItemInDay(day, body.itemId)
+    if (!sourceResult) return jsonError(c, 'That activity cannot be split.', 400)
+    if (
+      sourceResult.split &&
+      Array.isArray(sourceResult.split.groups) &&
+      sourceResult.split.groups.filter(isRecord).some((group) => group.ownerId === user.userProfile.userId)
+    ) {
+      return jsonError(c, 'You already have a split for this activity.', 409)
+    }
+    const apiKey = c.env.GEMINI_API_KEY?.trim()
+    if (!apiKey) return jsonError(c, 'Trip planning is not configured.', 503)
+    const secret = sessionSecret(c.env)
+    if (!secret) {
+      return jsonError(c, 'Auth0 session signing is not configured. Set AUTH0_SESSION_SECRET.', 503)
+    }
+
+    let interactionId: string
+    try {
+      interactionId = await generateTripSplit(
+        {
+          family: access.family,
+          requestedUser: user,
+          affectedDay: frontendDayForSplitPrompt(day, body.dayNumber),
+          activityIds: [body.itemId],
+        },
+        apiKey,
+      )
+    } catch (error) {
+      console.error('Trip split generation failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The trip planning service could not generate a split.', 502)
+    }
+    const interactionToken = await seal<TripSplitToken>(secret, {
+      interactionId,
+      familyCode,
+      userId: result.session.userId,
+      dayNumber: body.dayNumber,
+      itemId: body.itemId,
+      sourceDigest: await valueDigest(sourceResult.source),
+      expiresAt: Date.now() + 60 * 60 * 1000,
+    })
+    return c.json({ interactionToken }, 202)
+  }
+  const pollSplit = async (c: Context<AppContext>) => {
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+
+    const familyCode = c.req.param('familyId')
+    const interactionToken = c.req.param('interactionToken')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const secret = sessionSecret(c.env)
+    if (!secret) {
+      return jsonError(c, 'Auth0 session signing is not configured. Set AUTH0_SESSION_SECRET.', 503)
+    }
+    const token = await unseal<TripSplitToken>(secret, interactionToken)
+    if (!token || token.familyCode !== familyCode || token.userId !== result.session.userId) {
+      return jsonError(c, 'That split request is invalid or expired.', 403)
+    }
+    const access = await requireFamilyMember(c, familyCode, result.session.userId)
+    if ('response' in access) return access.response
+    const user = access.family.users.find(
+      (member) => member.userProfile.userId === result.session.userId,
+    )
+    if (!user) return jsonError(c, 'Family member not found.', 404)
+    const apiKey = c.env.GEMINI_API_KEY?.trim()
+    if (!apiKey) return jsonError(c, 'Trip planning is not configured.', 503)
+
+    let response: Awaited<ReturnType<typeof getTripPlan>>
+    try {
+      response = await getTripPlan(token.interactionId, apiKey)
+    } catch (error) {
+      console.error('Trip split status check failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The trip planning service could not retrieve the split.', 502)
+    }
+    if (response.status === 'in_progress') return c.json({ status: response.status }, 202)
+    if (!isGeneratedSplitPatch(response.plan, token.dayNumber)) {
+      console.error('Gemini returned a split patch with an invalid shape.')
+      return jsonError(c, 'The trip planning service returned an invalid split.', 502)
+    }
+
+    const stored = await getStored<{ familyCode: string; format?: string; plan: unknown }>(
+      c.env,
+      planKey(familyCode),
+    )
+    if (!stored || stored.familyCode !== familyCode) {
+      return jsonError(c, 'The saved trip plan is no longer available.', 409)
+    }
+    const editablePlan = editablePlanFromStored(stored, access.family)
+    if (!editablePlan) return jsonError(c, 'The saved trip plan is invalid.', 500)
+    if (!Array.isArray(editablePlan.days)) {
+      return jsonError(c, 'The saved trip plan has no itinerary days.', 500)
+    }
+    const dayIndex = editablePlan.days.findIndex(
+      (day) => isRecord(day) && day.dayNumber === token.dayNumber,
+    )
+    if (dayIndex < 0 || !isRecord(editablePlan.days[dayIndex])) {
+      return jsonError(c, 'The itinerary day changed while the split was being generated.', 409)
+    }
+    const day = editablePlan.days[dayIndex]
+    const sourceResult = sourceItemInDay(day, token.itemId)
+    if (!sourceResult) {
+      if (splitAlreadyOwnedBy(day, token.itemId, result.session.userId)) {
+        return c.json({ format: 'travel-app', plan: editablePlan })
+      }
+      return jsonError(c, 'The activity changed while the split was being generated. Reload the itinerary and try again.', 409)
+    }
+    if ((await valueDigest(sourceResult.source)) !== token.sourceDigest) {
+      return jsonError(c, 'The activity changed while the split was being generated. Reload the itinerary and try again.', 409)
+    }
+    if (
+      sourceResult.split &&
+      Array.isArray(sourceResult.split.groups) &&
+      sourceResult.split.groups.filter(isRecord).some((group) => group.ownerId === result.session.userId)
+    ) {
+      return c.json({ format: 'travel-app', plan: editablePlan })
+    }
+
+    const patchDay = (response.plan.days as Record<string, unknown>[])[0]
+    const patchSplit = (patchDay.splits as Record<string, unknown>[])[0]
+    let updatedPlan: Record<string, unknown>
+    try {
+      updatedPlan = mergeGeneratedSplit(
+        editablePlan,
+        dayIndex,
+        token.itemId,
+        user,
+        access.family,
+        patchSplit,
+      )
+      await putStored(c.env, planKey(familyCode), {
+        familyCode,
+        format: 'travel-app',
+        plan: updatedPlan,
+      })
+    } catch (error) {
+      console.error('Trip split persistence failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The generated split could not be saved.', 500)
+    }
+    return c.json({ format: 'travel-app', plan: updatedPlan })
+  }
   const getSavedPlan = async (c: Context<AppContext>) => {
     const result = await currentSession(c)
     if ('response' in result) return result.response
@@ -1316,8 +1913,12 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
   app.get('/families/:familyId/plan', getSavedPlan)
   app.put('/families/:familyId/plan', updateSavedPlan)
   app.get('/families/:familyId/plan/:interactionToken', pollPlan)
+  app.post('/families/:familyId/plan/splits', generateSplit)
+  app.get('/families/:familyId/plan/splits/:interactionToken', pollSplit)
   app.post('/travel/families/:familyId/plan', generatePlan)
   app.get('/travel/families/:familyId/plan', getSavedPlan)
   app.put('/travel/families/:familyId/plan', updateSavedPlan)
   app.get('/travel/families/:familyId/plan/:interactionToken', pollPlan)
+  app.post('/travel/families/:familyId/plan/splits', generateSplit)
+  app.get('/travel/families/:familyId/plan/splits/:interactionToken', pollSplit)
 }

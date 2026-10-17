@@ -499,6 +499,11 @@ export default function TravelApp() {
           profile={profile}
           onPlanChange={setPlan}
           onSavePlan={(updatedPlan) => saveGroupPlan(trip.familyId, profile.userId, updatedPlan)}
+          onReload={async () => {
+            const latestPlan = await getSavedGroupPlan(trip.familyId, trip)
+            if (!latestPlan) throw new Error('No saved trip plan was found.')
+            setPlan(latestPlan)
+          }}
           onRegenerate={() => handleGeneratePlan(true)}
           onBack={() => setScreen('trip')}
         />

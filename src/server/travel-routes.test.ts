@@ -1000,4 +1000,165 @@ describe('Auth0 travel routes', () => {
     expect(readResponse.status).toBe(200)
     expect(await readResponse.json()).toEqual({ format: 'travel-app', plan: editedPlan })
   })
+
+  it('generates and persists a split in the shared itinerary for a trip member', async () => {
+    const { objects, request } = testApp()
+    const familyCode = '2468'
+    const memberId = 'auth0|member'
+    objects.set(
+      `travel-families/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-14',
+        startTime: '09:00',
+        endTime: '18:00',
+        startCity: 'Tokyo',
+        endCity: 'Tokyo',
+        users: [
+          {
+            userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+            userTravelProfile: {},
+          },
+        ],
+      }),
+    )
+    const sourceActivity = {
+      id: 'stop-1',
+      type: 'activity',
+      title: 'Visit a shrine',
+      start: '10:00',
+      end: '12:00',
+      minutes: 120,
+      place: 'Tokyo',
+      address: '',
+      tips: [],
+      cost: null,
+    }
+    objects.set(
+      `travel-plans/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        format: 'travel-app',
+        plan: {
+          title: 'Japan plans',
+          subtitle: 'Tokyo',
+          startDate: '2027-03-14',
+          endDate: '2027-03-14',
+          days: [
+            {
+              dayNumber: 1,
+              date: '2027-03-14',
+              city: 'Tokyo',
+              theme: 'Culture',
+              items: [sourceActivity],
+            },
+          ],
+        },
+      }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: memberId,
+            email: 'member@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const sessionCookie = await signIn(request, 'Member', 'member@example.com')
+    const geminiFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ id: 'split-interaction' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          status: 'completed',
+          output_text: JSON.stringify({
+            days: [
+              {
+                day_number: 1,
+                splits: [
+                  {
+                    id: 'generated-split',
+                    start_time: '10:00',
+                    end_time: '12:00',
+                    reason: 'Explore a different cultural site.',
+                    branches: [
+                      {
+                        id: 'member-branch',
+                        label: 'Alternative',
+                        traveler_ids: [memberId],
+                        timeline: [
+                          {
+                            id: 'alternative-1',
+                            item_type: 'activity',
+                            title: 'Visit a garden',
+                            start_time: '10:00',
+                            end_time: '12:00',
+                            duration_minutes: 120,
+                            location: { name: 'Tokyo garden', address: null },
+                            transit_details: null,
+                            estimated_cost: null,
+                            notes_and_tips: [],
+                          },
+                        ],
+                      },
+                    ],
+                    rejoin_time: '12:00',
+                    rejoin_location: { name: 'Tokyo', address: null },
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      )
+    vi.stubGlobal('fetch', geminiFetch)
+
+    const startResponse = await request(`/families/${familyCode}/plan/splits`, {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requestedBy: memberId, dayNumber: 1, itemId: sourceActivity.id }),
+    })
+    const { interactionToken } = (await startResponse.json()) as { interactionToken: string }
+    const pollResponse = await request(
+      `/families/${familyCode}/plan/splits/${encodeURIComponent(interactionToken)}`,
+      { headers: { Cookie: sessionCookie } },
+    )
+    const stored = JSON.parse(objects.get(`travel-plans/${familyCode}`) ?? '{}') as {
+      format: string
+      plan: { days: Array<{ items: Array<Record<string, unknown>> }> }
+    }
+    const polled = (await pollResponse.json()) as { plan: unknown }
+
+    expect(startResponse.status).toBe(202)
+    expect(geminiFetch).toHaveBeenCalledTimes(2)
+    expect(pollResponse.status).toBe(200)
+    expect(stored.format).toBe('travel-app')
+    expect(stored.plan.days[0]?.items[0]).toMatchObject({
+      id: `split-${sourceActivity.id}`,
+      type: 'split',
+      defaultGroup: `original-${sourceActivity.id}`,
+      picks: { [memberId]: `alt-${encodeURIComponent(memberId)}` },
+      groups: [
+        { id: `original-${sourceActivity.id}`, items: [sourceActivity] },
+        {
+          id: `alt-${encodeURIComponent(memberId)}`,
+          ownerId: memberId,
+          items: [expect.objectContaining({ title: 'Visit a garden' })],
+        },
+      ],
+    })
+    expect(polled.plan).toEqual(stored.plan)
+  })
 })
