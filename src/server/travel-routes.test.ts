@@ -601,4 +601,98 @@ describe('Auth0 travel routes', () => {
     expect(verify.status).toBe(401)
     expect(await verify.json()).toEqual({ error: 'That code is incorrect or expired.' })
   })
+
+  it('logs in an existing travel user without changing their saved profile', async () => {
+    const { objects, request } = testApp()
+    objects.set(
+      'travel-users/auth0|existing',
+      JSON.stringify({
+        userId: 'auth0|existing',
+        name: 'Saved Name',
+        email: 'existing@example.com',
+        emailVerified: true,
+        avatar: 'fuji',
+        families: ['1234'],
+      }),
+    )
+    const auth0Fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({}))
+      .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          sub: 'auth0|existing',
+          email: 'existing@example.com',
+          email_verified: true,
+        }),
+      )
+    vi.stubGlobal('fetch', auth0Fetch)
+
+    const start = await request('/auth/start', {
+      method: 'POST',
+      headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: '', email: 'existing@example.com' }),
+    })
+    expect(start.status).toBe(200)
+    const verify = await request('/auth/verify', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: cookieFrom(start, 'travel_pending'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: '', email: 'existing@example.com', code: '1234' }),
+    })
+
+    expect(verify.status).toBe(200)
+    expect(await verify.json()).toEqual({
+      userId: 'auth0|existing',
+      name: 'Saved Name',
+      email: 'existing@example.com',
+    })
+    expect(JSON.parse(objects.get('travel-users/auth0|existing') ?? '{}')).toMatchObject({
+      name: 'Saved Name',
+      avatar: 'fuji',
+      families: ['1234'],
+    })
+    expect(verify.headers.get('set-cookie')).toContain('travel_session=')
+  })
+
+  it('does not create an app account through the login flow', async () => {
+    const { objects, request } = testApp()
+    const auth0Fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({}))
+      .mockResolvedValueOnce(Response.json({ access_token: 'verified-access-token' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          sub: 'auth0|new-user',
+          email: 'new@example.com',
+          email_verified: true,
+        }),
+      )
+    vi.stubGlobal('fetch', auth0Fetch)
+
+    const start = await request('/auth/start', {
+      method: 'POST',
+      headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: '', email: 'new@example.com' }),
+    })
+    const verify = await request('/auth/verify', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: cookieFrom(start, 'travel_pending'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: '', email: 'new@example.com', code: '1234' }),
+    })
+
+    expect(verify.status).toBe(403)
+    expect(await verify.json()).toEqual({
+      error: 'No existing Travel Together account was found for this email.',
+    })
+    expect(objects.has('travel-users/auth0|new-user')).toBe(false)
+    expect(verify.headers.get('set-cookie')).not.toContain('travel_session=')
+  })
 })

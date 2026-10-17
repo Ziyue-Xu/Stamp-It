@@ -18,6 +18,7 @@ interface TravelSession {
 interface PendingSignIn {
   email: string
   name: string
+  mode: 'login' | 'signup'
   expiresAt: number
 }
 
@@ -706,7 +707,15 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     if (!body) return jsonError(c, 'Expected a JSON request body.', 400)
     const name = body.name
     const email = body.email
-    if (typeof name !== 'string' || !name.trim() || name.trim().length > 80) {
+    if (body.mode !== undefined && body.mode !== 'login' && body.mode !== 'signup') {
+      return jsonError(c, 'Choose login or signup to continue.', 400)
+    }
+    const mode =
+      body.mode === 'login' || (typeof name === 'string' && !name.trim()) ? 'login' : 'signup'
+    if (
+      mode === 'signup' &&
+      (typeof name !== 'string' || !name.trim() || name.trim().length > 80)
+    ) {
       return jsonError(c, 'Enter a name between 1 and 80 characters.', 400)
     }
     if (
@@ -739,7 +748,8 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       )
       const pending = await seal(secret, {
         email: email.trim(),
-        name: name.trim(),
+        name: mode === 'signup' && typeof name === 'string' ? name.trim() : '',
+        mode,
         expiresAt: Date.now() + PENDING_TTL_SECONDS * 1000,
       })
       setCookie(c, PENDING_COOKIE, pending, PENDING_TTL_SECONDS)
@@ -810,9 +820,18 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
         return jsonError(c, 'Auth0 did not verify this email address.', 401)
       }
       const oldUser = await getStored<TravelUser>(c.env, userKey(userId))
+      if (pending.mode === 'login' && !oldUser) {
+        clearCookie(c, PENDING_COOKIE)
+        return jsonError(c, 'No existing Travel Together account was found for this email.', 403)
+      }
+      const accountName = pending.mode === 'login' ? oldUser?.name : pending.name
+      if (!accountName?.trim()) {
+        clearCookie(c, PENDING_COOKIE)
+        return jsonError(c, 'The saved account profile is incomplete.', 409)
+      }
       const user: TravelUser = {
         userId,
-        name: pending.name,
+        name: accountName,
         email: verifiedEmail,
         emailVerified: true,
         avatar: oldUser?.avatar || 'taj',

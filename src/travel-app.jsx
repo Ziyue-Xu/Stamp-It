@@ -153,6 +153,12 @@ export default function TravelApp() {
     setScreen(profile ? 'join' : 'signup')
   }
 
+  function handleLogin() {
+    setPageError('')
+    setIntent('login')
+    setScreen('signup')
+  }
+
   async function handleSignedIn(signedInProfile) {
     const response = await fetch('/auth/me')
     if (!response.ok) throw new Error('Sign-in completed, but your profile could not be loaded.')
@@ -161,7 +167,9 @@ export default function TravelApp() {
     await saveProfile(saved)
     setProfile(saved)
     setPageError('')
-    if (intent === 'join') {
+    if (intent === 'login') {
+      await showDashboard(saved)
+    } else if (intent === 'join') {
       setScreen('join')
     } else {
       setScreen('create')
@@ -358,10 +366,18 @@ export default function TravelApp() {
         </p>
       )}
       {screen === 'welcome' && (
-        <WelcomeScreen onStartTrip={handleNewTrip} onJoinTrip={handleJoinTrip} />
+        <WelcomeScreen
+          onStartTrip={handleNewTrip}
+          onJoinTrip={handleJoinTrip}
+          onLogin={handleLogin}
+        />
       )}
       {screen === 'signup' && (
-        <SignUpScreen onSave={handleSignedIn} onBack={goHome} />
+        <SignUpScreen
+          mode={intent === 'login' ? 'login' : 'signup'}
+          onSave={handleSignedIn}
+          onBack={goHome}
+        />
       )}
       {screen === 'create' && (
         <CreateTripScreen
