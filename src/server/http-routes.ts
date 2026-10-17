@@ -396,6 +396,16 @@ function namesAFile(pathname: string): boolean {
  * real miss and this worker makes the call the asset layer cannot.
  */
 export function registerStaticRoutes(app: Hono<AppContext>): void {
+  app.get('/travel', (c) => c.env.ASSETS.fetch(new Request(new URL('/travel.html', c.req.url))))
+  app.get('/travel/*', async (c, next) => {
+    const pathname = new URL(c.req.url).pathname
+    if (pathname.slice(pathname.lastIndexOf('/') + 1).includes('.')) {
+      await next()
+      return
+    }
+    return c.env.ASSETS.fetch(new Request(new URL('/travel.html', c.req.url)))
+  })
+
   // The API guard is METHOD-AGNOSTIC and sits ahead of the GET fallback, so a
   // POST/PUT/DELETE to a mistyped or rolled-back API route gets the same JSON
   // 404 a GET does — Hono's default would answer it with plain text, which is

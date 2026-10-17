@@ -34,6 +34,7 @@
     "clsx": "^2.1.0",
     "ai": "7.0.107",
     "deepspace": "0.42.3",
+    "framer-motion": "^14.3.0",
     "hono": "^4.13.7",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",

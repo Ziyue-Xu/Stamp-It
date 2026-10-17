@@ -40,8 +40,31 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    alias: [
+      {
+        find: './config',
+        replacement: fileURLToPath(new URL('./src/travel-api-config.js', import.meta.url)),
+      },
+      {
+        find: '../api/config',
+        replacement: fileURLToPath(new URL('./src/travel-api-config.js', import.meta.url)),
+      },
+      {
+        find: '@',
+        replacement: fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    ],
+  },
+  environments: {
+    client: {
+      build: {
+        rollupOptions: {
+          input: {
+            main: fileURLToPath(new URL('./index.html', import.meta.url)),
+            travel: fileURLToPath(new URL('./travel.html', import.meta.url)),
+          },
+        },
+      },
     },
   },
   optimizeDeps: {

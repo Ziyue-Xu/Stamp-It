@@ -33,6 +33,7 @@ import {
   resolveAuth,
 } from './src/server/http-routes.js'
 import { registerRealtimeRoutes } from './src/server/realtime-routes.js'
+import { registerTravelRoutes } from './src/server/travel-routes.js'
 
 // Dynamic deploy reads this manifest to create the app's DO bindings.
 export const __DO_MANIFEST__ = [
@@ -118,6 +119,10 @@ export interface Env extends DOBindings<typeof __DO_MANIFEST__> {
    * an authenticated app owner/admin. deepspace dev/test set it locally.
    */
   ALLOW_DEBUG_ROUTES?: string
+  AUTH0_DOMAIN?: string
+  AUTH0_CLIENT_ID?: string
+  AUTH0_CLIENT_SECRET?: string
+  AUTH0_SESSION_SECRET?: string
 }
 
 export type AppContext = { Bindings: Env }
@@ -135,6 +140,7 @@ app.use('*', async (c, next) => {
 // Registration order is part of the worker contract. The wildcard auth route
 // follows its special cases, AI precedes platform proxies, and static is last.
 registerAuthAndIntegrationRoutes(app)
+registerTravelRoutes(app)
 registerRealtimeRoutes(app)
 registerActionRoutes(app, resolveAuth)
 // The in-app assistant stores chat history in `ai-chats` / `ai-messages`,
