@@ -8,8 +8,28 @@ LEGACY_FAMILY_STORE_PATH = STORE_ROOT / "family-groups.json"
 
 
 def empty_travel_profile():
-    pass
-
+    priorities = {
+        "groundTransportation": "critical",
+        "dietaryRestrictions": "weak_link",
+        "diningCuisine": "flexible",
+        "tripPace": "flexible",
+        "activityFocus": "flexible",
+        "activityPopularity": "flexible",
+        "budgetTier": "critical",
+        "morningRoutine": "flexible",
+        "interestedInShopping": "flexible",
+        "travelStyle": "flexible",
+        "tourPreference": "flexible",
+        "luggagePreference": "critical",
+        "petFriendly": "weak_link",
+    }
+    return {
+        field: {
+            "value": [] if field in {"dietaryRestrictions", "activityFocus"} else None,
+            "priority": priority,
+        }
+        for field, priority in priorities.items()
+    }
 
 def normalize_travel_profile(travel_profile):
     pass
