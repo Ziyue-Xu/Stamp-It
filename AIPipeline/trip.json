@@ -1,82 +1,104 @@
 {
-  "trip_title": "Cultural Japan: Tokyo, Kyoto & Nara by Rail",
+  "trip_title": "Cultural & Scenic Exploration of Japan: Tokyo & Kyoto",
   "start_date": "2026-10-13",
   "end_date": "2026-10-20",
   "destinations": [
     "Tokyo",
-    "Kyoto",
-    "Nara"
+    "Kyoto"
   ],
   "days": [
     {
       "day_number": 1,
       "date": "2026-10-13",
       "base_city": "Tokyo",
-      "day_theme_or_summary": "Evening Arrival and Settling in Shinjuku",
+      "day_theme_or_summary": "Arrival in Tokyo & Relaxed Late Evening Check-in",
       "timeline": [
         {
-          "id": "d1-t1",
-          "item_type": "transit",
-          "title": "Board Narita Express to Shinjuku",
-          "start_time": "20:00",
-          "end_time": "21:20",
-          "duration_minutes": 80,
-          "location": null,
-          "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR East Narita Express",
-            "route_number": "N'EX 52",
-            "distance_km": 78.5
-          },
-          "notes_and_tips": [
-            "Use IC cards (Suica/Pasmo) or Narita Express reserved ticket",
-            "Ideal for backpack travelers"
-          ],
-          "estimated_cost": {
-            "amount": 3250,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d1-a1",
+          "id": "t_d1_01",
           "item_type": "lodging",
           "title": "Check-in at Hotel Gracery Shinjuku",
-          "start_time": "21:30",
-          "end_time": "22:00",
-          "duration_minutes": 30,
+          "start_time": "20:00",
+          "end_time": "20:45",
+          "duration_minutes": 45,
           "location": {
             "name": "Hotel Gracery Shinjuku",
             "address": "1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo 160-8466, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Centrally located comfortable mid-to-upscale tier accommodation fitting budget tiers 2 and 3"
+            "Comfortable mid-to-upscale tier accommodation fitting Alice and Bob's balanced budget",
+            "Located central to subway lines and local amenities"
           ],
           "estimated_cost": {
-            "amount": 16000,
+            "amount": 16000.0,
+            "currency": "JPY",
+            "is_per_person": false
+          }
+        },
+        {
+          "id": "t_d1_02",
+          "item_type": "transit",
+          "title": "Walk to Dinner in Shinjuku",
+          "start_time": "20:45",
+          "end_time": "21:00",
+          "duration_minutes": 15,
+          "location": null,
+          "transit_details": {
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.8
+          },
+          "notes_and_tips": [
+            "Leisurely stroll through central Shinjuku"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d1-m1",
+          "id": "t_d1_03",
           "item_type": "meal",
-          "title": "Late Evening Noodle Dinner at Soranoiro Nippon",
-          "start_time": "22:15",
-          "end_time": "23:00",
-          "duration_minutes": 45,
+          "title": "Late Casual Dinner at Ain Soph. Journey Shinjuku",
+          "start_time": "21:00",
+          "end_time": "22:15",
+          "duration_minutes": 75,
           "location": {
-            "name": "Soranoiro - Nippon",
-            "address": "1 Chome-9-1 Marunouchi, Chiyoda City, Tokyo 100-0005, Japan"
+            "name": "Ain Soph. Journey Shinjuku",
+            "address": "3 Chome-8-9 Shinjuku, Shinjuku City, Tokyo 160-0022, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Renowned for clearly marked vegan and gluten-free ramen bowls and dumplings",
-            "Order from ticket kiosk"
+            "100% vegan dining offering designated gluten-free dishes and curry sets",
+            "Casual dining style catering to both Alice and Bob"
           ],
           "estimated_cost": {
-            "amount": 1800,
+            "amount": 2500.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d1_04",
+          "item_type": "transit",
+          "title": "Walk back to Hotel Gracery Shinjuku",
+          "start_time": "22:15",
+          "end_time": "22:30",
+          "duration_minutes": 15,
+          "location": null,
+          "transit_details": {
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.8
+          },
+          "notes_and_tips": [
+            "Return to hotel to rest after travel"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
@@ -87,37 +109,38 @@
       "day_number": 2,
       "date": "2026-10-14",
       "base_city": "Tokyo",
-      "day_theme_or_summary": "Asakusa Heritage, Historic Senso-ji & Akihabara Exploration",
+      "day_theme_or_summary": "Traditional Culture, Historic Temples, and Garden Strolls",
       "timeline": [
         {
-          "id": "d2-t1",
+          "id": "t_d2_01",
           "item_type": "transit",
-          "title": "Subway from Shinjuku to Asakusa",
+          "title": "Subway from Shinjuku-sanchome to Asakusa",
           "start_time": "09:00",
-          "end_time": "09:30",
-          "duration_minutes": 30,
+          "end_time": "09:35",
+          "duration_minutes": 35,
           "location": null,
           "transit_details": {
             "mode": "subway",
-            "provider_or_line": "Tokyo Metro Ginza & Toei Oedo Line",
-            "route_number": "E27/G19",
+            "provider_or_line": "Tokyo Metro Ginza / Toei Asakusa Line",
+            "route_number": "Ginza/Asakusa Line",
             "distance_km": 11.2
           },
           "notes_and_tips": [
-            "Morning start scheduled around 9:00 AM to balance early and late risers"
+            "Midway morning departure balancing early bird Alice and late riser Bob",
+            "Use IC transit card (Suica/Pasmo)"
           ],
           "estimated_cost": {
-            "amount": 280,
+            "amount": 250.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-a1",
+          "id": "t_d2_02",
           "item_type": "activity",
-          "title": "Explore Senso-ji Temple & Nakamise-dori",
-          "start_time": "09:30",
-          "end_time": "11:30",
+          "title": "Self-Guided Walking Exploration of Senso-ji & Nakamise-dori",
+          "start_time": "09:35",
+          "end_time": "11:35",
           "duration_minutes": 120,
           "location": {
             "name": "Senso-ji",
@@ -126,39 +149,39 @@
           "transit_details": null,
           "notes_and_tips": [
             "Tokyo's oldest and most iconic Buddhist temple",
-            "Nakamise street offers cultural browsing and souvenir shopping"
+            "Alice can focus on cultural architecture and heritage while Bob browses traditional craft souvenir stalls"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-t2",
+          "id": "t_d2_03",
           "item_type": "transit",
           "title": "Walk to Shochikuen Cafe",
-          "start_time": "11:30",
+          "start_time": "11:35",
           "end_time": "11:45",
-          "duration_minutes": 15,
+          "duration_minutes": 10,
           "location": null,
           "transit_details": {
             "mode": "walking",
-            "provider_or_line": "Pedestrian Route",
-            "route_number": "Walk",
-            "distance_km": 0.8
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.6
           },
           "notes_and_tips": [
-            "Short pleasant walk through Nishiasakusa"
+            "Short stroll through Nishiasakusa"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d2-m1",
+          "id": "t_d2_04",
           "item_type": "meal",
           "title": "Lunch at Shochikuen Cafe",
           "start_time": "11:45",
@@ -170,165 +193,192 @@
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Dedicated plant-based cafe offering organic 100% vegan and gluten-free savory dishes and cakes"
+            "Specializes completely in vegan and 100% gluten-free dishes and pastries",
+            "Safe and worry-free dining for both Alice and Bob"
           ],
           "estimated_cost": {
-            "amount": 1800,
+            "amount": 1800.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-t3",
+          "id": "t_d2_05",
           "item_type": "transit",
-          "title": "Train from Asakusa to Akihabara",
+          "title": "Subway from Asakusa to Kiyosumi-shirakawa",
           "start_time": "13:00",
-          "end_time": "13:15",
+          "end_time": "13:30",
+          "duration_minutes": 30,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Toei Oedo Line",
+            "route_number": "Oedo Line",
+            "distance_km": 5.4
+          },
+          "notes_and_tips": [
+            "Direct subway ride down the east side of Tokyo"
+          ],
+          "estimated_cost": {
+            "amount": 220.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d2_06",
+          "item_type": "activity",
+          "title": "Stroll around Kiyosumi Gardens",
+          "start_time": "13:30",
+          "end_time": "15:00",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Kiyosumi Gardens",
+            "address": "3 Chome-3-9 Kiyosumi, Koto City, Tokyo 135-0024, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Meiji-period traditional landscape stroll garden",
+            "Quiet, off-the-beaten-path atmosphere catering to Alice's low-popularity preference and Bob's love of nature"
+          ],
+          "estimated_cost": {
+            "amount": 150.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d2_07",
+          "item_type": "transit",
+          "title": "Subway to Tokyo Station / Ginza",
+          "start_time": "15:00",
+          "end_time": "15:30",
+          "duration_minutes": 30,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Tokyo Metro Hanzomon & Marunouchi Line",
+            "route_number": "Z/M Line",
+            "distance_km": 4.5
+          },
+          "notes_and_tips": [
+            "Transit to Tokyo Station area"
+          ],
+          "estimated_cost": {
+            "amount": 210.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d2_08",
+          "item_type": "activity",
+          "title": "Exploration of Imperial Palace East Gardens & Marunouchi",
+          "start_time": "15:30",
+          "end_time": "17:30",
+          "duration_minutes": 120,
+          "location": {
+            "name": "Imperial Palace East Gardens",
+            "address": "1-1 Chiyoda, Chiyoda City, Tokyo 100-0001, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Scenic historic castle grounds with stone walls, moats, and seasonal flora",
+            "Easy walking pace with plenty of seating benches"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d2_09",
+          "item_type": "transit",
+          "title": "Walk to Tokyo Ramen Street",
+          "start_time": "17:30",
+          "end_time": "17:45",
           "duration_minutes": 15,
           "location": null,
           "transit_details": {
-            "mode": "train",
-            "provider_or_line": "Tsukuba Express",
-            "route_number": "TX03 to TX01",
-            "distance_km": 2.5
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.9
           },
           "notes_and_tips": [
-            "Direct 5-minute train ride"
+            "Walk underground into Tokyo Station First Avenue"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-a2",
-          "item_type": "activity",
-          "title": "Discover Pop Culture & Electronics at Akihabara",
-          "start_time": "13:15",
-          "end_time": "15:45",
-          "duration_minutes": 150,
-          "location": {
-            "name": "Akihabara Electric Town",
-            "address": "Sotokanda, Chiyoda City, Tokyo 101-0021, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Combines modern Japanese pop culture with casual electronics and gadget shopping"
-          ],
-          "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d2-t4",
-          "item_type": "transit",
-          "title": "Train from Akihabara to Ginza",
-          "start_time": "15:45",
-          "end_time": "16:05",
-          "duration_minutes": 20,
-          "location": null,
-          "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Tokyo Metro Hibiya Line",
-            "route_number": "H16 to H09",
-            "distance_km": 3.8
-          },
-          "notes_and_tips": [
-            "Quick subway transfer straight into Ginza district"
-          ],
-          "estimated_cost": {
-            "amount": 180,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d2-a3",
-          "item_type": "activity",
-          "title": "Afternoon Walk in Ginza & Traditional Crafts Shopping",
-          "start_time": "16:05",
-          "end_time": "18:00",
-          "duration_minutes": 115,
-          "location": {
-            "name": "Ginza Six",
-            "address": "6 Chome-10-1 Ginza, Chuo City, Tokyo 104-0061, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Admire traditional Japanese craftsmanship and boutique stores with a scenic rooftop garden"
-          ],
-          "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d2-m2",
+          "id": "t_d2_10",
           "item_type": "meal",
-          "title": "Dinner at Wagyu & Vegan Hamburger Ginza",
-          "start_time": "18:00",
-          "end_time": "19:30",
-          "duration_minutes": 90,
+          "title": "Casual Dinner at Soranoiro NIPPON",
+          "start_time": "17:45",
+          "end_time": "19:00",
+          "duration_minutes": 75,
           "location": {
-            "name": "Wagyu & Vegan Hamburger (Halal Gluten Free) Tokyo Ginza Restaurant",
-            "address": "Stage Ginza B1, 7 Chome-13-1 Ginza, Chuo City, Tokyo 104-0061, Japan"
+            "name": "Soranoiro - Nippon",
+            "address": "1 Chome-9-1 Marunouchi, Chiyoda City, Tokyo 100-0005, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Perfect blend for dietary restrictions: offers authentic Japanese Wagyu burgers alongside dedicated vegan tofu burgers on gluten-free buns"
+            "Famous for craft vegan ramen, gluten-free noodle alternatives, and gluten-free gyoza",
+            "Casual counter/table dining satisfying authentic local taste"
           ],
           "estimated_cost": {
-            "amount": 2800,
+            "amount": 1500.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-t5",
+          "id": "t_d2_11",
           "item_type": "transit",
-          "title": "Subway from Ginza back to Shinjuku",
-          "start_time": "19:30",
-          "end_time": "19:50",
-          "duration_minutes": 20,
+          "title": "Subway return to Shinjuku",
+          "start_time": "19:00",
+          "end_time": "19:30",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Tokyo Metro Marunouchi Line",
-            "route_number": "M16 to M08",
-            "distance_km": 6.5
+            "mode": "train",
+            "provider_or_line": "JR Chuo Line Rapid",
+            "route_number": "Chuo Rapid Line",
+            "distance_km": 7.0
           },
           "notes_and_tips": [
-            "Direct subway line to Shinjuku"
+            "Direct 15-minute train back to Shinjuku Station"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 210.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d2-a4",
+          "id": "t_d2_12",
           "item_type": "lodging",
-          "title": "Rest & Overnight at Hotel Gracery Shinjuku",
-          "start_time": "20:00",
-          "end_time": "23:55",
-          "duration_minutes": 235,
+          "title": "Evening Relaxation at Hotel Gracery Shinjuku",
+          "start_time": "19:30",
+          "end_time": "23:00",
+          "duration_minutes": 210,
           "location": {
             "name": "Hotel Gracery Shinjuku",
             "address": "1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo 160-8466, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Rest up for the morning shrines and gardens"
+            "Resting time to maintain a balanced, comfortable trip pace"
           ],
           "estimated_cost": {
-            "amount": 16000,
+            "amount": 16000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -337,37 +387,37 @@
       "day_number": 3,
       "date": "2026-10-15",
       "base_city": "Tokyo",
-      "day_theme_or_summary": "Meiji Shrine, Harajuku & Peaceful Gardens",
+      "day_theme_or_summary": "Meiji Shrine Forest & Vibrant Harajuku / Omotesando",
       "timeline": [
         {
-          "id": "d3-t1",
+          "id": "t_d3_01",
           "item_type": "transit",
-          "title": "Train from Shinjuku to Harajuku",
+          "title": "Subway / Train from Shinjuku to Harajuku",
           "start_time": "09:00",
-          "end_time": "09:15",
-          "duration_minutes": 15,
+          "end_time": "09:20",
+          "duration_minutes": 20,
           "location": null,
           "transit_details": {
             "mode": "train",
             "provider_or_line": "JR Yamanote Line",
-            "route_number": "JY17 to JY19",
-            "distance_km": 3.0
+            "route_number": "Yamanote Line Inner Loop",
+            "distance_km": 3.2
           },
           "notes_and_tips": [
-            "Quick 2-stop train trip"
+            "Quick hop on the Yamanote line"
           ],
           "estimated_cost": {
-            "amount": 150,
+            "amount": 150.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d3-a1",
+          "id": "t_d3_02",
           "item_type": "activity",
-          "title": "Visit Meiji Jingu Shrine & Forest Path",
-          "start_time": "09:15",
-          "end_time": "11:15",
+          "title": "Self-Guided Tour of Meiji Jingu Shrine and Forest",
+          "start_time": "09:20",
+          "end_time": "11:20",
           "duration_minutes": 120,
           "location": {
             "name": "Meiji Jingu",
@@ -375,210 +425,214 @@
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Combines tranquil nature with serene Shinto culture in a 170-acre forest in the heart of the city"
+            "Dense 170-acre forest walking paths surrounded by towering evergreen trees",
+            "Blends Shinto spiritual culture with peaceful nature"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d3-t2",
+          "id": "t_d3_03",
           "item_type": "transit",
-          "title": "Walk through Omotesando to Brown Rice Tokyo",
-          "start_time": "11:15",
-          "end_time": "11:35",
+          "title": "Walk along Omotesando boulevard to Brown Rice",
+          "start_time": "11:20",
+          "end_time": "11:40",
           "duration_minutes": 20,
           "location": null,
           "transit_details": {
             "mode": "walking",
-            "provider_or_line": "Pedestrian Promenade",
-            "route_number": "Walk",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
             "distance_km": 1.1
           },
           "notes_and_tips": [
-            "Stroll along tree-lined Zelkova avenue"
+            "Walk past architectural flagship stores and tree-lined avenues"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d3-m1",
+          "id": "t_d3_04",
           "item_type": "meal",
-          "title": "Traditional Vegan & Gluten-Free Lunch at Brown Rice Tokyo",
-          "start_time": "11:35",
+          "title": "Lunch at Brown Rice Tokyo Omotesando",
+          "start_time": "11:40",
           "end_time": "13:00",
-          "duration_minutes": 85,
+          "duration_minutes": 80,
           "location": {
             "name": "Brown Rice Tokyo Omotesando",
             "address": "5 Chome-1-8 Jingumae, Shibuya, Tokyo 150-0001, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Renowned seasonal Japanese set meals made entirely organic, vegan, and with extensive gluten-free options"
+            "Traditional seasonal Japanese plant-based set meals, clearly marked celiac-safe gluten-free options",
+            "Peaceful courtyard atmosphere"
           ],
           "estimated_cost": {
-            "amount": 2500,
+            "amount": 2500.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d3-t3",
-          "item_type": "transit",
-          "title": "Subway from Omote-sando to Kamiyacho",
+          "id": "t_d3_05",
+          "item_type": "activity",
+          "title": "Leisurely Exploration & Shopping at Omotesando Hills and Cat Street",
           "start_time": "13:00",
-          "end_time": "13:20",
-          "duration_minutes": 20,
+          "end_time": "15:30",
+          "duration_minutes": 150,
+          "location": {
+            "name": "Cat Street",
+            "address": "Jingumae, Shibuya City, Tokyo 150-0001, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Addresses Bob's interest in shopping with trendy boutiques and independent shops",
+            "Alice can enjoy relaxed cafe stops and urban architecture"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d3_06",
+          "item_type": "transit",
+          "title": "Subway from Omote-sando to Roppongi / Azabudai",
+          "start_time": "15:30",
+          "end_time": "16:00",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
             "mode": "subway",
-            "provider_or_line": "Tokyo Metro Ginza & Hibiya Line",
-            "route_number": "G02/H05",
+            "provider_or_line": "Tokyo Metro Hibiya Line",
+            "route_number": "Hibiya Line",
             "distance_km": 4.1
           },
           "notes_and_tips": [
-            "Easy subway connection"
+            "Short metro ride across Minato City"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 180.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d3-a2",
+          "id": "t_d3_07",
           "item_type": "activity",
-          "title": "teamLab Borderless at Azabudai Hills",
-          "start_time": "13:20",
-          "end_time": "15:50",
-          "duration_minutes": 150,
-          "location": {
-            "name": "teamLab Borderless: MORI Building DIGITAL ART MUSEUM",
-            "address": "Azabudai Hills Garden Plaza B B1F, 1 Chome-2-4 Azabudai, Minato City, Tokyo 106-0041, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "World-famous immersive digital art installation blending Japanese aesthetics and cutting-edge projection",
-            "Advance booking required"
-          ],
-          "estimated_cost": {
-            "amount": 4200,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d3-t4",
-          "item_type": "transit",
-          "title": "Subway from Kamiyacho to Shibuya",
-          "start_time": "15:50",
-          "end_time": "16:15",
-          "duration_minutes": 25,
-          "location": null,
-          "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Tokyo Metro Hibiya & Ginza Line",
-            "route_number": "H05 to G01",
-            "distance_km": 4.6
-          },
-          "notes_and_tips": [
-            "Subway ride to Shibuya station"
-          ],
-          "estimated_cost": {
-            "amount": 210,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d3-a3",
-          "item_type": "activity",
-          "title": "Explore Shibuya Crossing & Miyashita Park",
-          "start_time": "16:15",
-          "end_time": "18:15",
+          "title": "Visit Nezu Museum & Traditional Japanese Garden",
+          "start_time": "16:00",
+          "end_time": "18:00",
           "duration_minutes": 120,
           "location": {
-            "name": "Shibuya Scramble Crossing",
-            "address": "2 Chome-2-1 Dogenzaka, Shibuya City, Tokyo 150-0043, Japan"
+            "name": "Nezu Museum",
+            "address": "6 Chome-5-1 Minamiaoyama, Minato City, Tokyo 107-0062, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Experience the iconic pedestrian scramble and check out open-air rooftop shops at Miyashita Park"
+            "Exceptional collection of pre-modern Japanese and East Asian art",
+            "Features a lush Japanese stroll garden with tea houses and stone lanterns"
           ],
           "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d3-m2",
-          "item_type": "meal",
-          "title": "Dinner at Alchemy Tokyo",
-          "start_time": "18:15",
-          "end_time": "19:45",
-          "duration_minutes": 90,
-          "location": {
-            "name": "Alchemy",
-            "address": "4F, 1 Chome-3-1 Azabudai, Minato City, Tokyo 106-0041, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Dedicated 100% plant-based and gluten-free kitchen, featuring healthy protein bowls, okonomiyaki, and fresh desserts"
-          ],
-          "estimated_cost": {
-            "amount": 2600,
+            "amount": 1400.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d3-t5",
+          "id": "t_d3_08",
           "item_type": "transit",
-          "title": "Subway back to Shinjuku Hotel",
-          "start_time": "19:45",
-          "end_time": "20:10",
-          "duration_minutes": 25,
+          "title": "Subway to Ginza",
+          "start_time": "18:00",
+          "end_time": "18:30",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
             "mode": "subway",
-            "provider_or_line": "Tokyo Metro Toei Oedo Line",
-            "route_number": "E21 to E27",
-            "distance_km": 5.4
+            "provider_or_line": "Tokyo Metro Ginza Line",
+            "route_number": "Ginza Line",
+            "distance_km": 4.8
           },
           "notes_and_tips": [
-            "Return to hotel"
+            "Transit to Ginza dining district"
           ],
           "estimated_cost": {
-            "amount": 220,
+            "amount": 210.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d3-a4",
+          "id": "t_d3_09",
+          "item_type": "meal",
+          "title": "Dinner at Wagyu & Vegan Hamburger Ginza",
+          "start_time": "18:30",
+          "end_time": "19:45",
+          "duration_minutes": 75,
+          "location": {
+            "name": "Wagyu & Vegan Hamburger (Halal Gluten Free) Tokyo Ginza Restaurant",
+            "address": "Stage Ginza B1, 7 Chome-13-1 Ginza, Chuo City, Tokyo 104-0061, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Serves certified vegan tofu katsu burgers and dedicated gluten-free buns alongside casual local comfort food",
+            "Casual, relaxed dining spot accommodating both vegan and gluten-free dietary needs"
+          ],
+          "estimated_cost": {
+            "amount": 2200.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d3_10",
+          "item_type": "transit",
+          "title": "Subway return to Shinjuku",
+          "start_time": "19:45",
+          "end_time": "20:15",
+          "duration_minutes": 30,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Tokyo Metro Marunouchi Line",
+            "route_number": "Marunouchi Line",
+            "distance_km": 6.8
+          },
+          "notes_and_tips": [
+            "Return trip to base hotel"
+          ],
+          "estimated_cost": {
+            "amount": 210.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d3_11",
           "item_type": "lodging",
           "title": "Overnight at Hotel Gracery Shinjuku",
           "start_time": "20:15",
-          "end_time": "23:55",
-          "duration_minutes": 220,
+          "end_time": "23:00",
+          "duration_minutes": 165,
           "location": {
             "name": "Hotel Gracery Shinjuku",
             "address": "1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo 160-8466, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Pack light backpacks for tomorrow's Shinkansen journey to Kyoto"
+            "Pack day backpacks for scenic Shinkansen transit tomorrow morning"
           ],
           "estimated_cost": {
-            "amount": 16000,
+            "amount": 16000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -587,104 +641,105 @@
       "day_number": 4,
       "date": "2026-10-16",
       "base_city": "Kyoto",
-      "day_theme_or_summary": "Bullet Train to Kyoto & Historic Higashiyama",
+      "day_theme_or_summary": "Shinkansen Journey to Kyoto & Historic Gion Heritage",
       "timeline": [
         {
-          "id": "d4-t1",
+          "id": "t_d4_01",
           "item_type": "transit",
-          "title": "Train from Shinjuku to Tokyo Station",
-          "start_time": "08:50",
-          "end_time": "09:10",
-          "duration_minutes": 20,
+          "title": "Subway/Train from Shinjuku to Tokyo Station",
+          "start_time": "09:00",
+          "end_time": "09:25",
+          "duration_minutes": 25,
           "location": null,
           "transit_details": {
             "mode": "train",
             "provider_or_line": "JR Chuo Line",
             "route_number": "Rapid",
-            "distance_km": 8.9
+            "distance_km": 7.0
           },
           "notes_and_tips": [
-            "Connect directly to the Shinkansen platform"
+            "Light backpacks make transferring across central stations hassle-free"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 210.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d4-t2",
+          "id": "t_d4_02",
           "item_type": "transit",
-          "title": "Tokaido Shinkansen Bullet Train to Kyoto",
+          "title": "Shinkansen Bullet Train to Kyoto Station",
           "start_time": "09:30",
           "end_time": "11:45",
           "duration_minutes": 135,
           "location": null,
           "transit_details": {
             "mode": "train",
-            "provider_or_line": "JR Central Tokaido Shinkansen",
+            "provider_or_line": "JR Tokaido Shinkansen",
             "route_number": "Nozomi 25",
             "distance_km": 513.6
           },
           "notes_and_tips": [
-            "High-speed Shinkansen; sit on right side for views of Mt. Fuji if weather permits"
+            "High-speed scenic journey with views of Mount Fuji on the right side",
+            "Reserved seating"
           ],
           "estimated_cost": {
-            "amount": 14170,
+            "amount": 14170.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d4-a1",
-          "item_type": "lodging",
-          "title": "Check-in & Bag Drop at Cross Hotel Kyoto",
-          "start_time": "12:00",
-          "end_time": "12:20",
+          "id": "t_d4_03",
+          "item_type": "transit",
+          "title": "Subway to Gion / Kawaramachi",
+          "start_time": "11:45",
+          "end_time": "12:05",
           "duration_minutes": 20,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Kyoto Municipal Subway Karasuma Line / Hankyu",
+            "route_number": "K08 to Shijo",
+            "distance_km": 3.0
+          },
+          "notes_and_tips": [
+            "Quick transit to historic downtown Kyoto"
+          ],
+          "estimated_cost": {
+            "amount": 220.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d4_04",
+          "item_type": "lodging",
+          "title": "Luggage Drop & Check-in at Cross Hotel Kyoto",
+          "start_time": "12:05",
+          "end_time": "12:35",
+          "duration_minutes": 30,
           "location": {
             "name": "Cross Hotel Kyoto",
-            "address": "71-1 Daikokucho, Kawaramachi-dori Sanjo-sagaru, Nakagyo Ward, Kyoto 604-8031, Japan"
+            "address": "71-1 Daikokucho, Nakagyo Ward, Kyoto, 604-8031, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Superb central location near Sanjo and Kawaramachi; leave luggage at front desk"
+            "Prime location just off Sanjo Kawaramachi; stylish mid-tier modern Japanese hotel"
           ],
           "estimated_cost": {
-            "amount": 14000,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d4-t3",
-          "item_type": "transit",
-          "title": "Walk to Mumokuteki Cafe",
-          "start_time": "12:20",
-          "end_time": "12:30",
-          "duration_minutes": 10,
-          "location": null,
-          "transit_details": {
-            "mode": "walking",
-            "provider_or_line": "Pedestrian Street",
-            "route_number": "Walk",
-            "distance_km": 0.5
-          },
-          "notes_and_tips": [
-            "Easy short stroll through Teramachi shopping arcade"
-          ],
-          "estimated_cost": {
-            "amount": 0,
+            "amount": 18000.0,
             "currency": "JPY",
             "is_per_person": false
           }
         },
         {
-          "id": "d4-m1",
+          "id": "t_d4_05",
           "item_type": "meal",
-          "title": "Lunch at Mumokuteki Cafe & Foods",
-          "start_time": "12:30",
-          "end_time": "13:45",
+          "title": "Lunch at mumokuteki cafe&foods Kyoto",
+          "start_time": "12:35",
+          "end_time": "13:50",
           "duration_minutes": 75,
           "location": {
             "name": "mumokuteki cafe&foods Kyoto",
@@ -692,108 +747,111 @@
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Popular plant-based restaurant featuring gluten-free ramen, seasonal vegetable sets, and soy burgers"
+            "Only a short 5-minute walk from the hotel",
+            "Broad casual cafe menu with dedicated vegan bowls, tofu hamburgs, and gluten-free ramen sets"
           ],
           "estimated_cost": {
-            "amount": 2000,
+            "amount": 1700.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d4-t4",
+          "id": "t_d4_06",
           "item_type": "transit",
-          "title": "Bus from Kawaramachi to Kiyomizu-michi",
-          "start_time": "13:45",
+          "title": "Walk across Kamo River to Gion",
+          "start_time": "13:50",
           "end_time": "14:05",
-          "duration_minutes": 20,
-          "location": null,
-          "transit_details": {
-            "mode": "bus",
-            "provider_or_line": "Kyoto City Bus",
-            "route_number": "Bus 207",
-            "distance_km": 2.3
-          },
-          "notes_and_tips": [
-            "Board at Shijo Kawaramachi bus stop"
-          ],
-          "estimated_cost": {
-            "amount": 230,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d4-a2",
-          "item_type": "activity",
-          "title": "Kiyomizu-dera Temple & Historic Ninenzaka Walk",
-          "start_time": "14:05",
-          "end_time": "16:45",
-          "duration_minutes": 160,
-          "location": {
-            "name": "Kiyomizu-dera",
-            "address": "1 Chome-294 Kiyomizu, Higashiyama Ward, Kyoto 605-0862, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "UNESCO World Heritage site with famous wooden stage offering panoramic Kyoto vistas, followed by historic stone-paved lanes"
-          ],
-          "estimated_cost": {
-            "amount": 500,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d4-t5",
-          "item_type": "transit",
-          "title": "Walk down to Gion through Yasaka Shrine",
-          "start_time": "16:45",
-          "end_time": "17:15",
-          "duration_minutes": 30,
+          "duration_minutes": 15,
           "location": null,
           "transit_details": {
             "mode": "walking",
-            "provider_or_line": "Pedestrian Stroll",
-            "route_number": "Walk",
-            "distance_km": 1.4
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.9
           },
           "notes_and_tips": [
-            "Picturesque descent passing traditional machiya townhouses"
+            "Scenic crossing over Shijo Bridge"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d4-a3",
+          "id": "t_d4_07",
           "item_type": "activity",
-          "title": "Evening Walk in Gion Geisha District",
-          "start_time": "17:15",
-          "end_time": "18:30",
-          "duration_minutes": 75,
+          "title": "Historic Walking Tour of Gion District & Yasaka Shrine",
+          "start_time": "14:05",
+          "end_time": "16:05",
+          "duration_minutes": 120,
           "location": {
-            "name": "Gion Shirakawa",
-            "address": "Gionmachi Minamigawa, Higashiyama Ward, Kyoto 605-0074, Japan"
+            "name": "Yasaka Shrine",
+            "address": "625 Gionmachi Kitagawa, Higashiyama Ward, Kyoto 605-0073, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Atmospheric cobblestone streets, willow trees, and illuminated wooden facades"
+            "Explore traditional wooden machiya townhouses along Shirakawa canal and Hanami-koji",
+            "Rich cultural immersion for Alice; leisurely photo walks and quaint craft shops for Bob"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d4-m2",
+          "id": "t_d4_08",
+          "item_type": "activity",
+          "title": "Explore Kennin-ji Zen Temple & Dry Landscape Gardens",
+          "start_time": "16:05",
+          "end_time": "17:35",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Kennin-ji Temple",
+            "address": "584 Komatsucho, Higashiyama Ward, Kyoto 605-0811, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Kyoto's oldest Zen temple; famous for twin dragon ceiling murals and peaceful gravel rock gardens",
+            "Quiet gem in the heart of Gion with minimal tourist crowds"
+          ],
+          "estimated_cost": {
+            "amount": 600.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d4_09",
+          "item_type": "transit",
+          "title": "Walk to Gion Soy Milk Ramen Uno Yukiko",
+          "start_time": "17:35",
+          "end_time": "17:45",
+          "duration_minutes": 10,
+          "location": null,
+          "transit_details": {
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.5
+          },
+          "notes_and_tips": [
+            "Short walk near Gion-Shijo"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d4_10",
           "item_type": "meal",
           "title": "Dinner at Gion Soy Milk Ramen Uno Yukiko",
-          "start_time": "18:30",
-          "end_time": "19:45",
+          "start_time": "17:45",
+          "end_time": "19:00",
           "duration_minutes": 75,
           "location": {
             "name": "Gion Soy Milk Ramen Uno Yukiko",
@@ -801,56 +859,57 @@
           },
           "transit_details": null,
           "notes_and_tips": [
-            "All-vegan and 100% gluten-free creamy soy milk ramen with rice flour noodles and vegan gyoza; cashless payment"
+            "100% vegan and gluten-free soy milk ramen with rice-flour kelp noodles and crispy vegetable gyoza",
+            "Delicious, healthy local dining completely safe for celiacs and vegans alike"
           ],
           "estimated_cost": {
-            "amount": 2200,
+            "amount": 2200.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d4-t6",
+          "id": "t_d4_11",
           "item_type": "transit",
-          "title": "Walk across Kamo River to Hotel",
-          "start_time": "19:45",
-          "end_time": "20:00",
-          "duration_minutes": 15,
+          "title": "Evening stroll back to Cross Hotel Kyoto",
+          "start_time": "19:00",
+          "end_time": "19:20",
+          "duration_minutes": 20,
           "location": null,
           "transit_details": {
             "mode": "walking",
-            "provider_or_line": "Shijo Bridge Walk",
-            "route_number": "Walk",
-            "distance_km": 0.8
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 1.0
           },
           "notes_and_tips": [
-            "Cross the Kamo River enjoying the evening breeze"
+            "Atmospheric walk along Pontocho alley"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d4-a4",
+          "id": "t_d4_12",
           "item_type": "lodging",
           "title": "Overnight at Cross Hotel Kyoto",
-          "start_time": "20:00",
-          "end_time": "23:55",
-          "duration_minutes": 235,
+          "start_time": "19:20",
+          "end_time": "23:00",
+          "duration_minutes": 220,
           "location": {
             "name": "Cross Hotel Kyoto",
-            "address": "71-1 Daikokucho, Kawaramachi-dori Sanjo-sagaru, Nakagyo Ward, Kyoto 604-8031, Japan"
+            "address": "71-1 Daikokucho, Nakagyo Ward, Kyoto, 604-8031, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Relax after a day of sightseeing"
+            "Comfortable downtime and restful sleep"
           ],
           "estimated_cost": {
-            "amount": 14000,
+            "amount": 18000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -859,224 +918,229 @@
       "day_number": 5,
       "date": "2026-10-17",
       "base_city": "Kyoto",
-      "day_theme_or_summary": "Arashiyama Bamboo Grove & Golden Pavilion",
+      "day_theme_or_summary": "Arashiyama Bamboo Grove, Historic Temples, and Scenic River",
       "timeline": [
         {
-          "id": "d5-t1",
+          "id": "t_d5_01",
           "item_type": "transit",
-          "title": "Keifuku Electric Railroad (Randen) to Arashiyama",
+          "title": "Train from Kawaramachi to Arashiyama",
           "start_time": "09:00",
           "end_time": "09:35",
           "duration_minutes": 35,
           "location": null,
           "transit_details": {
             "mode": "train",
-            "provider_or_line": "Keifuku Electric Railroad (Randen)",
-            "route_number": "Arashiyama Line",
-            "distance_km": 9.2
+            "provider_or_line": "Hankyu Kyoto / Arashiyama Line",
+            "route_number": "Hankyu Line via Katsura",
+            "distance_km": 12.0
           },
           "notes_and_tips": [
-            "Charming vintage streetcar to western Kyoto"
+            "Scenic suburban train ride heading west to the foot of the mountains"
           ],
           "estimated_cost": {
-            "amount": 250,
+            "amount": 240.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-a1",
+          "id": "t_d5_02",
           "item_type": "activity",
-          "title": "Arashiyama Bamboo Grove & Tenryu-ji Zen Gardens",
+          "title": "Arashiyama Bamboo Grove & Tenryu-ji Temple Gardens",
           "start_time": "09:35",
-          "end_time": "12:05",
-          "duration_minutes": 150,
+          "end_time": "11:45",
+          "duration_minutes": 130,
           "location": {
-            "name": "Arashiyama Bamboo Grove",
-            "address": "Sagatenryuji Susukinobabacho, Ukyo Ward, Kyoto 616-8385, Japan"
+            "name": "Tenryu-ji",
+            "address": "68 Sagatenryuji Susukinobabacho, Ukyo Ward, Kyoto 616-8385, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Immerse in nature along towering bamboo paths and UNESCO-listed 14th-century temple landscape garden"
+            "UNESCO World Heritage Zen garden designed in the 14th century, blending seamlessly into nature",
+            "Followed by a walk under the soaring green stalks of the bamboo grove"
           ],
           "estimated_cost": {
-            "amount": 500,
+            "amount": 500.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-t2",
+          "id": "t_d5_03",
           "item_type": "transit",
-          "title": "Train & Bus to Nakagyo Ward for Lunch",
-          "start_time": "12:05",
-          "end_time": "12:40",
-          "duration_minutes": 35,
+          "title": "Walk along the Katsura Riverbank",
+          "start_time": "11:45",
+          "end_time": "12:00",
+          "duration_minutes": 15,
           "location": null,
           "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR San-In Line",
-            "route_number": "Local",
-            "distance_km": 8.5
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.8
           },
           "notes_and_tips": [
-            "Direct ride back towards central Kawaramachi area"
+            "Gentle walk viewing Togetsukyo Bridge and surrounding forested slopes"
           ],
           "estimated_cost": {
-            "amount": 240,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-m1",
+          "id": "t_d5_04",
           "item_type": "meal",
-          "title": "Lunch at Kyoto Engine Ramen",
-          "start_time": "12:40",
-          "end_time": "13:55",
-          "duration_minutes": 75,
-          "location": {
-            "name": "KYOTO ENGINE RAMEN",
-            "address": "580-2 Nakanocho, Nakagyo Ward, Kyoto 604-8042, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Offers rich vegan ramen broths with dedicated gluten-free noodles and vegetarian dumplings"
-          ],
-          "estimated_cost": {
-            "amount": 1700,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d5-t3",
-          "item_type": "transit",
-          "title": "Bus to Kinkaku-ji",
-          "start_time": "13:55",
-          "end_time": "14:30",
-          "duration_minutes": 35,
-          "location": null,
-          "transit_details": {
-            "mode": "bus",
-            "provider_or_line": "Kyoto City Bus",
-            "route_number": "Bus 205",
-            "distance_km": 6.8
-          },
-          "notes_and_tips": [
-            "Scenic bus route through northern Kyoto"
-          ],
-          "estimated_cost": {
-            "amount": 230,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d5-a2",
-          "item_type": "activity",
-          "title": "Marvel at Kinkaku-ji (The Golden Pavilion)",
-          "start_time": "14:30",
-          "end_time": "16:00",
+          "title": "Lunch at Shigetsu (Buddhist Shojin Ryori in Tenryu-ji)",
+          "start_time": "12:00",
+          "end_time": "13:30",
           "duration_minutes": 90,
           "location": {
-            "name": "Kinkaku-ji",
-            "address": "1 Kinkakujicho, Kita Ward, Kyoto 603-8361, Japan"
+            "name": "Shigetsu",
+            "address": "68 Sagatenryuji Susukinobabacho, Ukyo Ward, Kyoto 616-8385, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Iconic Zen temple covered in pure gold leaf reflecting over the Kyoko-chi mirror pond"
+            "Traditional Buddhist vegetarian temple cuisine (Shojin Ryori), intrinsically plant-based/vegan",
+            "Advance reservation required; gluten-free rice and vegetable courses tailored upon booking"
           ],
           "estimated_cost": {
-            "amount": 500,
+            "amount": 3500.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-t4",
+          "id": "t_d5_05",
+          "item_type": "activity",
+          "title": "Okochi Sanso Villa Nature Garden & Green Tea",
+          "start_time": "13:30",
+          "end_time": "15:00",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Okochi Sanso Garden",
+            "address": "8 Sagaogurayama Tabuchiyamacho, Ukyo Ward, Kyoto 616-8394, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "A serene hillside villa garden away from the large Arashiyama tour crowds (low popularity, high cultural quality)",
+            "Includes a complimentary matcha tea and view of Kyoto valley"
+          ],
+          "estimated_cost": {
+            "amount": 1000.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d5_06",
           "item_type": "transit",
-          "title": "Bus to Downtown Kyoto",
-          "start_time": "16:00",
-          "end_time": "16:40",
+          "title": "Train from Arashiyama back to Central Kyoto",
+          "start_time": "15:00",
+          "end_time": "15:40",
           "duration_minutes": 40,
           "location": null,
           "transit_details": {
-            "mode": "bus",
-            "provider_or_line": "Kyoto City Bus",
-            "route_number": "Bus 12",
-            "distance_km": 7.0
+            "mode": "train",
+            "provider_or_line": "Keifuku Electric Railroad (Randen) & Subway",
+            "route_number": "Randen Arashiyama Main Line",
+            "distance_km": 11.5
           },
           "notes_and_tips": [
-            "Return to central Kawaramachi"
+            "Charming retro tram car experience through Kyoto's neighborhoods"
           ],
           "estimated_cost": {
-            "amount": 230,
+            "amount": 470.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-a3",
+          "id": "t_d5_07",
           "item_type": "activity",
-          "title": "Stroll & Shopping along Shinkikyogoku & Nishiki Market Area",
-          "start_time": "16:40",
-          "end_time": "18:30",
-          "duration_minutes": 110,
+          "title": "Shijo-Dori & Nishiki Market Craft Stalls",
+          "start_time": "15:40",
+          "end_time": "17:40",
+          "duration_minutes": 120,
           "location": {
-            "name": "Shinkyogoku Shopping District",
-            "address": "Higashigawacho, Nakagyo Ward, Kyoto 604-8046, Japan"
+            "name": "Nishiki Market",
+            "address": "Nakagyo Ward, Kyoto, 604-8055, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Perfect balance for souvenir shopping and admiring Kyoto artisan crafts, ceramics, and chopsticks"
+            "Bob can explore traditional kitchenware, chopsticks, ceramics, and textiles",
+            "Vibrant sensory experience in central Kyoto"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d5-m2",
+          "id": "t_d5_08",
+          "item_type": "transit",
+          "title": "Short walk to VOG Kyoto",
+          "start_time": "17:40",
+          "end_time": "17:50",
+          "duration_minutes": 10,
+          "location": null,
+          "transit_details": {
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.4
+          },
+          "notes_and_tips": [
+            "Walking within Nakanocho area"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d5_09",
           "item_type": "meal",
-          "title": "Dinner at VOG Kyoto",
-          "start_time": "18:30",
-          "end_time": "20:00",
-          "duration_minutes": 90,
+          "title": "Dinner at VOG Kyoto (Vegetarian, Organic, Gluten-Free)",
+          "start_time": "17:50",
+          "end_time": "19:15",
+          "duration_minutes": 85,
           "location": {
             "name": "VOG Kyoto - Vegetarian, Vegan, Gluten Free & Jain Restaurant",
             "address": "Mikihan bldg 2F, 574 Nakanocho, Nakagyo Ward, Kyoto 604-8042, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "100% vegetarian, vegan, and gluten-free dedicated kitchen serving organic dishes prepared with fresh local seasonal vegetables"
+            "Dedicated organic, 100% vegan, and certified gluten-free kitchen",
+            "Dishes served on handcrafted Kyoto pottery"
           ],
           "estimated_cost": {
-            "amount": 2400,
+            "amount": 2400.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d5-a4",
+          "id": "t_d5_10",
           "item_type": "lodging",
           "title": "Overnight at Cross Hotel Kyoto",
-          "start_time": "20:15",
-          "end_time": "23:55",
-          "duration_minutes": 220,
+          "start_time": "19:15",
+          "end_time": "23:00",
+          "duration_minutes": 225,
           "location": {
             "name": "Cross Hotel Kyoto",
-            "address": "71-1 Daikokucho, Kawaramachi-dori Sanjo-sagaru, Nakagyo Ward, Kyoto 604-8031, Japan"
+            "address": "71-1 Daikokucho, Nakagyo Ward, Kyoto, 604-8031, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Relax at the hotel lounge"
+            "Relaxing evening at hotel"
           ],
           "estimated_cost": {
-            "amount": 14000,
+            "amount": 18000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -1085,226 +1149,252 @@
       "day_number": 6,
       "date": "2026-10-18",
       "base_city": "Kyoto",
-      "day_theme_or_summary": "Fushimi Inari Shrine & Day Excursion to Historic Nara",
+      "day_theme_or_summary": "Torii Gates of Fushimi Inari & Historic Southern Higashiyama",
       "timeline": [
         {
-          "id": "d6-t1",
+          "id": "t_d6_01",
           "item_type": "transit",
-          "title": "Train from Kyoto Station to Inari",
-          "start_time": "08:50",
-          "end_time": "09:05",
-          "duration_minutes": 15,
+          "title": "Train from Gion-Shijo to Fushimi-Inari",
+          "start_time": "09:00",
+          "end_time": "09:20",
+          "duration_minutes": 20,
           "location": null,
           "transit_details": {
             "mode": "train",
-            "provider_or_line": "JR Nara Line",
-            "route_number": "Local",
-            "distance_km": 5.1
+            "provider_or_line": "Keihan Main Line",
+            "route_number": "Sub-express / Local",
+            "distance_km": 4.6
           },
           "notes_and_tips": [
-            "Train stops right opposite the shrine entrance"
+            "Short train south to the sacred shrine"
           ],
           "estimated_cost": {
-            "amount": 150,
+            "amount": 210.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-a1",
+          "id": "t_d6_02",
           "item_type": "activity",
-          "title": "Hike the Senbon Torii Gates at Fushimi Inari Shrine",
-          "start_time": "09:05",
-          "end_time": "11:20",
-          "duration_minutes": 135,
+          "title": "Self-Guided Nature & Culture Hike at Fushimi Inari Shrine",
+          "start_time": "09:20",
+          "end_time": "11:50",
+          "duration_minutes": 150,
           "location": {
             "name": "Fushimi Inari Taisha",
             "address": "68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto 612-0882, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Breathtaking cultural hike through thousands of vermilion torii gates winding up sacred Mount Inari"
+            "Walk up the wooded slopes of Mount Inari beneath thousands of vermilion torii gates",
+            "Hike up to Yotsutsuji intersection for panoramic views of Kyoto; higher paths are much less crowded"
           ],
           "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d6-t2",
-          "item_type": "transit",
-          "title": "JR Nara Line Train from Inari to Nara",
-          "start_time": "11:20",
-          "end_time": "12:15",
-          "duration_minutes": 55,
-          "location": null,
-          "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR Nara Line",
-            "route_number": "Miyakoji Rapid",
-            "distance_km": 36.5
-          },
-          "notes_and_tips": [
-            "Scenic regional train journey across the Yamashiro basin"
-          ],
-          "estimated_cost": {
-            "amount": 680,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-m1",
+          "id": "t_d6_03",
+          "item_type": "transit",
+          "title": "Train back to Higashiyama (Gion / Kiyomizu area)",
+          "start_time": "11:50",
+          "end_time": "12:10",
+          "duration_minutes": 20,
+          "location": null,
+          "transit_details": {
+            "mode": "train",
+            "provider_or_line": "Keihan Main Line",
+            "route_number": "Local",
+            "distance_km": 4.0
+          },
+          "notes_and_tips": [
+            "Take Keihan Line back to Kiyomizu-Gojo station"
+          ],
+          "estimated_cost": {
+            "amount": 210.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d6_04",
           "item_type": "meal",
-          "title": "Lunch at Onwa Vegan & Gluten-Free Cafe Nara",
-          "start_time": "12:15",
-          "end_time": "13:30",
+          "title": "Lunch at cafe vegan terrace",
+          "start_time": "12:10",
+          "end_time": "13:25",
           "duration_minutes": 75,
           "location": {
-            "name": "Onwa",
-            "address": "1 Sanjohonmachi, Nara, 630-8122, Japan"
+            "name": "cafe vegan terrace/カフェヴィーガンテラス",
+            "address": "44-21 Bishamoncho, Higashiyama Ward, Kyoto 605-0812, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Cozy organic cafe near JR Nara station offering 100% plant-based, gluten-free noodle and curry sets made with local Nara vegetables"
+            "Located at Gion Elite Terrace 1F; completely 100% plant-based and gluten-free",
+            "Features vegan gluten-free ramen, curry, soy meat bowls, and traditional matcha desserts"
           ],
           "estimated_cost": {
-            "amount": 1900,
+            "amount": 1600.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-t3",
+          "id": "t_d6_05",
           "item_type": "transit",
-          "title": "Bus from JR Nara Station to Todaiji",
-          "start_time": "13:30",
+          "title": "Walk up historic Ninenzaka and Sannenzaka",
+          "start_time": "13:25",
           "end_time": "13:45",
-          "duration_minutes": 15,
+          "duration_minutes": 20,
           "location": null,
           "transit_details": {
-            "mode": "bus",
-            "provider_or_line": "Nara Kotsu Bus",
-            "route_number": "City Loop Bus",
-            "distance_km": 2.2
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.8
           },
           "notes_and_tips": [
-            "Hop on bus towards Daibutsuden Kasugataisha-mae"
+            "Stone-paved pedestrian alleys lined with preserved traditional wooden buildings"
           ],
           "estimated_cost": {
-            "amount": 220,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-a2",
+          "id": "t_d6_06",
           "item_type": "activity",
-          "title": "Explore Todai-ji Great Buddha & Nara Deer Park",
+          "title": "Cultural Visit to Kiyomizu-dera Temple",
           "start_time": "13:45",
-          "end_time": "16:45",
-          "duration_minutes": 180,
+          "end_time": "15:45",
+          "duration_minutes": 120,
           "location": {
-            "name": "Todai-ji",
-            "address": "406-1 Zoshicho, Nara, 630-8211, Japan"
+            "name": "Kiyomizu-dera",
+            "address": "1 Chome-294 Kiyomizu, Higashiyama Ward, Kyoto 605-0862, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "One of Japan's most celebrated historic temples housing the giant bronze Daibutsu, surrounded by free-roaming sacred sika deer"
+            "Iconic wooden stage cantilevered over maple trees on Mount Otowa",
+            "Rich history dating back over 1,200 years"
           ],
           "estimated_cost": {
-            "amount": 600,
+            "amount": 400.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-t4",
+          "id": "t_d6_07",
           "item_type": "transit",
-          "title": "Train from Nara back to Kyoto",
-          "start_time": "16:45",
-          "end_time": "17:35",
-          "duration_minutes": 50,
+          "title": "Leisurely walk through Maruyama Park to Downtown",
+          "start_time": "15:45",
+          "end_time": "16:15",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR Nara Line",
-            "route_number": "Miyakoji Rapid",
-            "distance_km": 41.7
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 1.5
           },
           "notes_and_tips": [
-            "Direct express back to Kyoto station"
+            "Scenic pedestrian path through greenery and ponds"
           ],
           "estimated_cost": {
-            "amount": 720,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-t5",
+          "id": "t_d6_08",
+          "item_type": "activity",
+          "title": "Tea Ceremony Experience at Camellia Tea House",
+          "start_time": "16:15",
+          "end_time": "17:45",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Camellia Tea House Kyoto",
+            "address": "349 Masuyacho, Higashiyama Ward, Kyoto 605-0826, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Authentic, intimate guided Japanese tea ceremony",
+            "Deep dive into Zen aesthetics, tea preparation, and seasonal sweets (gluten-free and vegan wagashi)"
+          ],
+          "estimated_cost": {
+            "amount": 3500.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d6_09",
           "item_type": "transit",
-          "title": "Subway from Kyoto Station to Shijo Kawaramachi",
-          "start_time": "17:35",
-          "end_time": "17:50",
-          "duration_minutes": 15,
+          "title": "Walk across Kamo River to Kiyamachi-dori",
+          "start_time": "17:45",
+          "end_time": "18:05",
+          "duration_minutes": 20,
           "location": null,
           "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Kyoto Municipal Subway Karasuma Line",
-            "route_number": "K11 to K09",
-            "distance_km": 2.4
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 1.1
           },
           "notes_and_tips": [
-            "Short subway ride"
+            "Walk beside the quiet Takase Canal"
           ],
           "estimated_cost": {
-            "amount": 220,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-m2",
+          "id": "t_d6_10",
           "item_type": "meal",
-          "title": "Dinner at Cafe & Bar Maru Gluten Free",
-          "start_time": "18:00",
-          "end_time": "19:30",
+          "title": "Dinner at Cafe & Bar Maru",
+          "start_time": "18:05",
+          "end_time": "19:35",
           "duration_minutes": 90,
           "location": {
             "name": "Cafe & Bar Maru",
-            "address": "RAKUAS Kiyamachi 3F, 123 Saitocho, Shimogyo Ward, Kyoto 600-8012, Japan"
+            "address": "123 Saitocho, RAKUAS Kiyamachi 3F, Shimogyo Ward, Kyoto 600-8012, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Atmospheric dining by Kiyamachi using local fermented seasonings, rice flour, gluten-free soy sauce, and dedicated vegan plates"
+            "Dedicated 100% gluten-free kitchen with authentic Japanese seasonings (salt koji, rice miso, tamari)",
+            "Extensive vegan plates and local rice wine pairings in a traditional Kumiko woodwork setting"
           ],
           "estimated_cost": {
-            "amount": 3200,
+            "amount": 3200.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d6-a3",
+          "id": "t_d6_11",
           "item_type": "lodging",
           "title": "Overnight at Cross Hotel Kyoto",
-          "start_time": "19:45",
-          "end_time": "23:55",
-          "duration_minutes": 250,
+          "start_time": "19:35",
+          "end_time": "23:00",
+          "duration_minutes": 205,
           "location": {
             "name": "Cross Hotel Kyoto",
-            "address": "71-1 Daikokucho, Kawaramachi-dori Sanjo-sagaru, Nakagyo Ward, Kyoto 604-8031, Japan"
+            "address": "71-1 Daikokucho, Nakagyo Ward, Kyoto, 604-8031, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Rest after extensive park and temple walking"
+            "Easy walk back to hotel"
           ],
           "estimated_cost": {
-            "amount": 14000,
+            "amount": 18000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -1313,247 +1403,294 @@
       "day_number": 7,
       "date": "2026-10-19",
       "base_city": "Tokyo",
-      "day_theme_or_summary": "Return Shinkansen to Tokyo & Imperial Palace Gardens",
+      "day_theme_or_summary": "Philosopher's Path, Zen Temple & Shinkansen Return to Tokyo",
       "timeline": [
         {
-          "id": "d7-t1",
+          "id": "t_d7_01",
           "item_type": "transit",
-          "title": "Subway to Kyoto Station",
+          "title": "Kyoto City Bus from Sanjo to Ginkaku-ji",
           "start_time": "09:00",
-          "end_time": "09:15",
-          "duration_minutes": 15,
+          "end_time": "09:30",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Kyoto Municipal Subway Karasuma Line",
-            "route_number": "K09 to K11",
-            "distance_km": 2.4
+            "mode": "bus",
+            "provider_or_line": "Kyoto City Bus",
+            "route_number": "Bus 5 / 17",
+            "distance_km": 4.5
           },
           "notes_and_tips": [
-            "Head to Kyoto Shinkansen gates"
+            "Midway morning departure balancing group wake-up styles"
           ],
           "estimated_cost": {
-            "amount": 220,
+            "amount": 230.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d7-t2",
-          "item_type": "transit",
-          "title": "Tokaido Shinkansen Bullet Train back to Tokyo",
+          "id": "t_d7_02",
+          "item_type": "activity",
+          "title": "Visit Ginkaku-ji (Silver Pavilion) & Sand Garden",
           "start_time": "09:30",
-          "end_time": "11:45",
+          "end_time": "11:00",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Ginkaku-ji",
+            "address": "2 Ginkakujicho, Sakyo Ward, Kyoto 606-8402, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Masterpiece of Zen dry sand gardening and mossy forest footpaths",
+            "Deep cultural aesthetic of wabi-sabi"
+          ],
+          "estimated_cost": {
+            "amount": 500.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_03",
+          "item_type": "activity",
+          "title": "Scenic Stroll along the Philosopher's Path (Tetsugaku-no-michi)",
+          "start_time": "11:00",
+          "end_time": "12:15",
+          "duration_minutes": 75,
+          "location": {
+            "name": "Philosopher's Path",
+            "address": "Sakyo Ward, Kyoto, 606-8427, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Stone path following a tree-shaded canal, providing nature immersion and peaceful walking pace"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_04",
+          "item_type": "transit",
+          "title": "Bus/Subway from Nanzen-ji area to Kyoto Station",
+          "start_time": "12:15",
+          "end_time": "12:45",
+          "duration_minutes": 30,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Kyoto Municipal Subway Tozai & Karasuma Lines",
+            "route_number": "T14 to K11",
+            "distance_km": 5.2
+          },
+          "notes_and_tips": [
+            "Retrieve day packs and proceed to Kyoto Station"
+          ],
+          "estimated_cost": {
+            "amount": 260.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_05",
+          "item_type": "meal",
+          "title": "Lunch Bento & Dining at Teishoku Healthy Cafe Kyoto Station",
+          "start_time": "12:45",
+          "end_time": "13:45",
+          "duration_minutes": 60,
+          "location": {
+            "name": "Kyoto Station",
+            "address": "Higashishiokojicho, Shimogyo Ward, Kyoto 600-8216, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Pick up allergen-labeled plant-based bento or dine at station cafe with clear vegan and gluten-free marks"
+          ],
+          "estimated_cost": {
+            "amount": 1600.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_06",
+          "item_type": "transit",
+          "title": "Shinkansen Bullet Train from Kyoto to Tokyo",
+          "start_time": "14:00",
+          "end_time": "16:15",
           "duration_minutes": 135,
           "location": null,
           "transit_details": {
             "mode": "train",
-            "provider_or_line": "JR Central Tokaido Shinkansen",
-            "route_number": "Nozomi 22",
+            "provider_or_line": "JR Tokaido Shinkansen",
+            "route_number": "Nozomi 364",
             "distance_km": 513.6
           },
           "notes_and_tips": [
-            "Comfortable return bullet train directly arriving at Tokyo Central Station"
+            "Smooth high-speed ride returning north to Tokyo"
           ],
           "estimated_cost": {
-            "amount": 14170,
+            "amount": 14170.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d7-a1",
-          "item_type": "lodging",
-          "title": "Check-in & Bag Drop at Hotel Ryumeikan Tokyo",
-          "start_time": "12:00",
-          "end_time": "12:20",
-          "duration_minutes": 20,
-          "location": {
-            "name": "Hotel Ryumeikan Tokyo",
-            "address": "1 Chome-3-22 Yaesu, Chuo City, Tokyo 103-0028, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Located 3 minutes' walk from Tokyo Station; optimal for transit and airport departure"
-          ],
-          "estimated_cost": {
-            "amount": 15000,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d7-m1",
-          "item_type": "meal",
-          "title": "Lunch at T's TanTan Tokyo Station",
-          "start_time": "12:20",
-          "end_time": "13:30",
-          "duration_minutes": 70,
-          "location": {
-            "name": "T's TanTan - Gransta Tokyo",
-            "address": "1 Chome-9-1 Marunouchi, Chiyoda City, Tokyo 100-0005, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Famous 100% plant-based noodle shop with rich sesame broth and gluten-free noodle alternatives"
-          ],
-          "estimated_cost": {
-            "amount": 1500,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d7-t3",
+          "id": "t_d7_07",
           "item_type": "transit",
-          "title": "Walk from Tokyo Station to Imperial Palace East Gardens",
-          "start_time": "13:30",
-          "end_time": "13:45",
-          "duration_minutes": 15,
-          "location": null,
-          "transit_details": {
-            "mode": "walking",
-            "provider_or_line": "Marunouchi Dori",
-            "route_number": "Walk",
-            "distance_km": 1.0
-          },
-          "notes_and_tips": [
-            "Walk through Tokyo's grand brick station plaza"
-          ],
-          "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d7-a2",
-          "item_type": "activity",
-          "title": "Stroll Tokyo Imperial Palace East Gardens",
-          "start_time": "13:45",
-          "end_time": "15:45",
-          "duration_minutes": 120,
-          "location": {
-            "name": "The East Gardens of the Imperial Palace",
-            "address": "1-1 Chiyoda, Chiyoda City, Tokyo 100-0001, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Former Edo Castle grounds with massive stone foundations, moats, and traditional Japanese Ninomaru gardens"
-          ],
-          "estimated_cost": {
-            "amount": 0,
-            "currency": "JPY",
-            "is_per_person": false
-          }
-        },
-        {
-          "id": "d7-t4",
-          "item_type": "transit",
-          "title": "Subway to Roppongi",
-          "start_time": "15:45",
-          "end_time": "16:10",
+          "title": "Subway from Tokyo Station to Shinjuku",
+          "start_time": "16:15",
+          "end_time": "16:40",
           "duration_minutes": 25,
           "location": null,
           "transit_details": {
-            "mode": "subway",
-            "provider_or_line": "Tokyo Metro Hibiya Line",
-            "route_number": "H09 to H04",
-            "distance_km": 4.5
+            "mode": "train",
+            "provider_or_line": "JR Chuo Line",
+            "route_number": "Rapid",
+            "distance_km": 7.0
           },
           "notes_and_tips": [
-            "Subway ride towards Roppongi Hills"
+            "Quick city train across Tokyo"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 210.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d7-a3",
+          "id": "t_d7_08",
+          "item_type": "lodging",
+          "title": "Check-in at Hotel Gracery Shinjuku",
+          "start_time": "16:40",
+          "end_time": "17:15",
+          "duration_minutes": 35,
+          "location": {
+            "name": "Hotel Gracery Shinjuku",
+            "address": "1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo 160-8466, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Unpack and freshen up before final evening in Tokyo"
+          ],
+          "estimated_cost": {
+            "amount": 16000.0,
+            "currency": "JPY",
+            "is_per_person": false
+          }
+        },
+        {
+          "id": "t_d7_09",
+          "item_type": "transit",
+          "title": "Subway to Roppongi / Azabudai",
+          "start_time": "17:15",
+          "end_time": "17:45",
+          "duration_minutes": 30,
+          "location": null,
+          "transit_details": {
+            "mode": "subway",
+            "provider_or_line": "Toei Oedo Line",
+            "route_number": "Oedo Line",
+            "distance_km": 5.8
+          },
+          "notes_and_tips": [
+            "Direct subway ride"
+          ],
+          "estimated_cost": {
+            "amount": 220.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_10",
+          "item_type": "meal",
+          "title": "Farewell Dinner at Alchemy Tokyo",
+          "start_time": "17:45",
+          "end_time": "19:15",
+          "duration_minutes": 90,
+          "location": {
+            "name": "Alchemy",
+            "address": "4F, 1 Chome-3-1 Azabudai, Minato City, Tokyo 106-0041, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Dedicated plant-based, gluten-free dining establishment",
+            "Casual yet trendy setting overlooking Azabudai Hills"
+          ],
+          "estimated_cost": {
+            "amount": 2800.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d7_11",
           "item_type": "activity",
-          "title": "Sunset Views at Roppongi Hills Tokyo City View",
-          "start_time": "16:10",
-          "end_time": "18:10",
-          "duration_minutes": 120,
+          "title": "Night View from Roppongi Hills Observation Deck",
+          "start_time": "19:15",
+          "end_time": "20:45",
+          "duration_minutes": 90,
           "location": {
             "name": "Roppongi Hills Mori Tower",
             "address": "6 Chome-10-1 Roppongi, Minato City, Tokyo 106-0032, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Panoramic observation deck overlooking Tokyo Tower and the vast city skyline during sunset"
+            "Breathtaking 360-degree night skyline views of Tokyo Tower and the metropolis",
+            "Relaxed, indoor setting"
           ],
           "estimated_cost": {
-            "amount": 2200,
+            "amount": 2000.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d7-t5",
+          "id": "t_d7_12",
           "item_type": "transit",
-          "title": "Subway back to Yaesu / Marunouchi",
-          "start_time": "18:10",
-          "end_time": "18:35",
+          "title": "Subway return to Shinjuku",
+          "start_time": "20:45",
+          "end_time": "21:10",
           "duration_minutes": 25,
           "location": null,
           "transit_details": {
             "mode": "subway",
-            "provider_or_line": "Tokyo Metro Hibiya & Marunouchi Line",
-            "route_number": "H04 to M17",
-            "distance_km": 4.8
+            "provider_or_line": "Toei Oedo Line",
+            "route_number": "Oedo Line",
+            "distance_km": 5.8
           },
           "notes_and_tips": [
-            "Return to hotel area"
+            "Subway back to hotel"
           ],
           "estimated_cost": {
-            "amount": 210,
+            "amount": 220.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d7-m2",
-          "item_type": "meal",
-          "title": "Farewell Dinner at Ain Soph. Soar / Journey",
-          "start_time": "18:45",
-          "end_time": "20:30",
-          "duration_minutes": 105,
-          "location": {
-            "name": "Ain Soph. Journey Shinjuku",
-            "address": "3 Chome-8-9 Shinjuku, Shinjuku City, Tokyo 160-0022, Japan"
-          },
-          "transit_details": null,
-          "notes_and_tips": [
-            "Acclaimed plant-based casual restaurant specializing in vegan Japanese curries, fluffy gluten-free pancakes, and gourmet course meals"
-          ],
-          "estimated_cost": {
-            "amount": 3500,
-            "currency": "JPY",
-            "is_per_person": true
-          }
-        },
-        {
-          "id": "d7-a4",
+          "id": "t_d7_13",
           "item_type": "lodging",
-          "title": "Overnight at Hotel Ryumeikan Tokyo",
-          "start_time": "21:00",
-          "end_time": "23:55",
-          "duration_minutes": 175,
+          "title": "Overnight at Hotel Gracery Shinjuku",
+          "start_time": "21:10",
+          "end_time": "23:00",
+          "duration_minutes": 110,
           "location": {
-            "name": "Hotel Ryumeikan Tokyo",
-            "address": "1 Chome-3-22 Yaesu, Chuo City, Tokyo 103-0028, Japan"
+            "name": "Hotel Gracery Shinjuku",
+            "address": "1 Chome-19-1 Kabukicho, Shinjuku City, Tokyo 160-8466, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Conveniently close to Tokyo Station for an effortless departure tomorrow"
+            "Rest up before departure day"
           ],
           "estimated_cost": {
-            "amount": 15000,
+            "amount": 16000.0,
             "currency": "JPY",
-            "is_per_person": true
+            "is_per_person": false
           }
         }
       ]
@@ -1562,159 +1699,206 @@
       "day_number": 8,
       "date": "2026-10-20",
       "base_city": "Tokyo",
-      "day_theme_or_summary": "Morning Souvenirs, Ueno Park & Airport Transfer",
+      "day_theme_or_summary": "Garden Morning, Souvenir Shopping & Departure",
       "timeline": [
         {
-          "id": "d8-t1",
+          "id": "t_d8_01",
           "item_type": "transit",
-          "title": "Train from Tokyo Station to Ueno",
+          "title": "Walk from Hotel to Shinjuku Gyoen National Garden",
           "start_time": "09:15",
           "end_time": "09:30",
           "duration_minutes": 15,
           "location": null,
           "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR Yamanote / Keihin-Tohoku Line",
-            "route_number": "JY05 to JY01",
-            "distance_km": 3.7
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.9
           },
           "notes_and_tips": [
-            "Leave luggage checked with hotel concierge"
+            "Gentle morning walk after midday check-out preparation"
           ],
           "estimated_cost": {
-            "amount": 170,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d8-a1",
+          "id": "t_d8_02",
           "item_type": "activity",
-          "title": "Stroll Ueno Park & Shinobazu Pond",
+          "title": "Morning Stroll through Shinjuku Gyoen National Garden",
           "start_time": "09:30",
           "end_time": "11:30",
           "duration_minutes": 120,
           "location": {
-            "name": "Ueno Park",
-            "address": "Uenokoen, Taito City, Tokyo 110-0007, Japan"
+            "name": "Shinjuku Gyoen National Garden",
+            "address": "11 Naitomachi, Shinjuku City, Tokyo 160-0014, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Harmonious blend of cultural monuments, lotus ponds, and tree-lined pathways"
+            "Sprawling park featuring traditional Japanese landscape gardens, English lawns, and tranquil nature ponds",
+            "Peaceful way to enjoy final morning in Japan"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 500.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d8-t2",
+          "id": "t_d8_03",
           "item_type": "transit",
-          "title": "Walk to Ameyoko Market",
+          "title": "Walk to Takashimaya Times Square",
           "start_time": "11:30",
-          "end_time": "11:40",
-          "duration_minutes": 10,
+          "end_time": "11:45",
+          "duration_minutes": 15,
           "location": null,
           "transit_details": {
             "mode": "walking",
-            "provider_or_line": "Pedestrian Path",
-            "route_number": "Walk",
-            "distance_km": 0.4
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.7
           },
           "notes_and_tips": [
-            "Steps from Ueno station south exit"
+            "Short walk across Shinjuku South Exit"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d8-a2",
+          "id": "t_d8_04",
           "item_type": "activity",
-          "title": "Last-Minute Shopping at Ameyoko Open-Air Market",
-          "start_time": "11:40",
-          "end_time": "13:10",
+          "title": "Souvenir & Specialty Gift Shopping at Takashimaya Times Square & Hands",
+          "start_time": "11:45",
+          "end_time": "13:15",
           "duration_minutes": 90,
           "location": {
-            "name": "Ameyoko Shopping District",
-            "address": "4 Chome Ueno, Taito City, Tokyo 110-0005, Japan"
+            "name": "Takashimaya Times Square",
+            "address": "5 Chome-24-2 Sendagaya, Shibuya City, Tokyo 151-8580, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Bustling market street great for tea, snacks, crafts, and casual souvenirs"
+            "Caters directly to Bob's shopping interest for Japanese crafts, stationery, and packaged regional teas",
+            "Alice can explore the depachika food hall displays"
           ],
           "estimated_cost": {
-            "amount": 0,
+            "amount": 0.0,
             "currency": "JPY",
-            "is_per_person": false
+            "is_per_person": true
           }
         },
         {
-          "id": "d8-m1",
-          "item_type": "meal",
-          "title": "Lunch at Komaki Syokudo Kamakura Fushiki",
+          "id": "t_d8_05",
+          "item_type": "transit",
+          "title": "Walk to Cafe Matsutake Shinjuku",
           "start_time": "13:15",
-          "end_time": "14:30",
+          "end_time": "13:30",
+          "duration_minutes": 15,
+          "location": null,
+          "transit_details": {
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.6
+          },
+          "notes_and_tips": [
+            "Walk towards Shinjuku Station"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d8_06",
+          "item_type": "meal",
+          "title": "Farewell Lunch at Plant-Based & Gluten-Free Cafe",
+          "start_time": "13:30",
+          "end_time": "14:45",
           "duration_minutes": 75,
           "location": {
-            "name": "Komaki Syokudo - Kamakura Fushiki",
-            "address": "Chabara 1F, 8-2 Kanda Neribeicho, Chiyoda City, Tokyo 101-0022, Japan"
+            "name": "Wired Bonbon Shinjuku",
+            "address": "Lumine 1, 6F, 1 Chome-1-5 Nishishinjuku, Shinjuku City, Tokyo 160-0023, Japan"
           },
           "transit_details": null,
           "notes_and_tips": [
-            "Traditional Buddhist Shojin Ryori temple cuisine that is inherently vegan and naturally prepared with many wheat-free gluten-friendly options"
+            "Offers 100% plant-based vegan sweets, rice bowls, and gluten-free dessert parfaits",
+            "Comfortable, casual location directly connected to the station"
           ],
           "estimated_cost": {
-            "amount": 2200,
+            "amount": 1900.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d8-t3",
+          "id": "t_d8_07",
           "item_type": "transit",
-          "title": "Train back to Tokyo Station & Retrieve Luggage",
-          "start_time": "14:30",
-          "end_time": "14:50",
-          "duration_minutes": 20,
+          "title": "Retrieve Backpacks and Walk to Shinjuku Station",
+          "start_time": "14:45",
+          "end_time": "15:15",
+          "duration_minutes": 30,
           "location": null,
           "transit_details": {
-            "mode": "train",
-            "provider_or_line": "JR Yamanote Line",
-            "route_number": "JY03 to JY01",
-            "distance_km": 2.1
+            "mode": "walking",
+            "provider_or_line": "Walking route",
+            "route_number": "N/A",
+            "distance_km": 0.8
           },
           "notes_and_tips": [
-            "Collect backpacks from hotel concierge"
+            "Collect stored backpacks and head to the Narita Express / airport transit platform"
           ],
           "estimated_cost": {
-            "amount": 150,
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
         },
         {
-          "id": "d8-t4",
+          "id": "t_d8_08",
           "item_type": "transit",
-          "title": "Narita Express to Airport for Departure",
-          "start_time": "15:00",
-          "end_time": "16:15",
-          "duration_minutes": 75,
+          "title": "Narita Express / Airport Transit to Airport",
+          "start_time": "15:15",
+          "end_time": "16:45",
+          "duration_minutes": 90,
           "location": null,
           "transit_details": {
             "mode": "train",
-            "provider_or_line": "JR East Narita Express",
-            "route_number": "N'EX 39",
+            "provider_or_line": "JR Narita Express",
+            "route_number": "N'EX 41",
             "distance_km": 72.0
           },
           "notes_and_tips": [
-            "Direct express train from Tokyo Station arriving by 16:15 PM, perfectly aligned with the 18:00 (6:00 PM) trip conclusion"
+            "Comfortable reserved seating train directly to Tokyo Narita Airport (NRT) in time for trip conclusion at 18:00"
           ],
           "estimated_cost": {
-            "amount": 3070,
+            "amount": 3250.0,
+            "currency": "JPY",
+            "is_per_person": true
+          }
+        },
+        {
+          "id": "t_d8_09",
+          "item_type": "activity",
+          "title": "Trip Conclusion & Airport Check-in",
+          "start_time": "16:45",
+          "end_time": "18:00",
+          "duration_minutes": 75,
+          "location": {
+            "name": "Narita International Airport",
+            "address": "1-1 Furugome, Narita, Chiba 282-0004, Japan"
+          },
+          "transit_details": null,
+          "notes_and_tips": [
+            "Trip wraps up smoothly at 18:00 in accordance with requested itinerary end time"
+          ],
+          "estimated_cost": {
+            "amount": 0.0,
             "currency": "JPY",
             "is_per_person": true
           }
@@ -1723,7 +1907,7 @@
     }
   ],
   "warnings": [
-    "Trip Tip (Morning Routine): Alice prefers early starts (6:00 AM–8:00 AM) while Bob prefers late mornings (10:00 AM–12:00 PM). Activities have been planned to commence around 9:00 AM daily, allowing Bob restful mornings and Alice peaceful early morning solo walks or quiet hotel breakfasts before group departures.",
-    "Trip Tip (Budget Tier): Alice prefers mid-range (Tier 2) and Bob prefers higher-range (Tier 3). Accommodations and dining have been balanced in the upper-mid tier (averaging ¥14,000–¥16,000/night for stylish, high-comfort central hotels) to provide superior convenience and quality without excessive expense."
+    "Budget Tier Compromise: Alice prefers a medium budget (Tier 2) while Bob prefers a high budget (Tier 3). Accommodations and dining have been balanced in the comfortable mid-to-upscale range (Tier 2.5), using high-quality boutique 4-star hotels with private amenities, while keeping daily expenses reasonable.",
+    "Morning Routine Compromise: Alice prefers an early start (6:00 AM - 8:00 AM) while Bob prefers a late start (10:00 AM - 12:00 PM). The itinerary adopts a gentle midway schedule (activities starting around 9:00 AM - 9:30 AM), allowing Alice leisurely mornings or quiet walks while Bob enjoys extra rest."
   ]
-} 
+}
