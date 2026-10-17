@@ -1,4 +1,5 @@
 
-export const USE_REAL_BACKEND = false;
+export const USE_REAL_BACKEND = true;
 
-export const API_BASE_URL = "http://localhost:8000";
+
+export const API_BASE_URL = "https://swamphack.app.space/travel";

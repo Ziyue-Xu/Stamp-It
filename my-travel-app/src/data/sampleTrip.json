@@ -1,0 +1,99 @@
+{
+  "trip_title": "Culture and Food: Paris to Nice by Rail",
+  "start_date": "2027-03-14",
+  "end_date": "2027-03-15",
+  "destinations": ["Paris", "Nice"],
+  "days": [
+    {
+      "day_number": 1,
+      "date": "2027-03-14",
+      "base_city": "Paris",
+      "day_theme_or_summary": "Arrive, settle in, and see the classics.",
+      "timeline": [
+        {
+          "id": "d1-1",
+          "item_type": "activity",
+          "title": "Walk along the Seine",
+          "start_time": "10:00",
+          "end_time": "12:00",
+          "duration_minutes": 120,
+          "location": { "name": "The Seine", "address": "Quai de la Tournelle, 75005 Paris" },
+          "transit_details": null,
+          "notes_and_tips": ["Wear comfortable shoes.", "Bring a light jacket."],
+          "estimated_cost": { "amount": 0, "currency": "EUR", "is_per_person": true }
+        },
+        {
+          "id": "d1-2",
+          "item_type": "transit",
+          "title": "Metro to lunch",
+          "start_time": "12:00",
+          "end_time": "12:20",
+          "duration_minutes": 20,
+          "location": { "name": "Metro line 4", "address": "" },
+          "transit_details": { "mode": "subway", "provider_or_line": "Line 4", "distance_km": 3 },
+          "notes_and_tips": [],
+          "estimated_cost": { "amount": 2.15, "currency": "EUR", "is_per_person": true }
+        },
+        {
+          "id": "d1-3",
+          "item_type": "meal",
+          "title": "Lunch at a classic bistro",
+          "start_time": "12:30",
+          "end_time": "14:00",
+          "duration_minutes": 90,
+          "location": { "name": "Bistro Marais", "address": "12 Rue des Rosiers, 75004 Paris" },
+          "transit_details": null,
+          "notes_and_tips": ["Try the croque monsieur."],
+          "estimated_cost": { "amount": 25, "currency": "EUR", "is_per_person": true }
+        },
+        {
+          "id": "d1-4",
+          "item_type": "lodging",
+          "title": "Check in at the hotel",
+          "start_time": "15:00",
+          "end_time": "23:59",
+          "duration_minutes": null,
+          "location": { "name": "Hotel Lumiere", "address": "5 Rue de Rivoli, 75001 Paris" },
+          "transit_details": null,
+          "notes_and_tips": [],
+          "estimated_cost": null
+        }
+      ]
+    },
+    {
+      "day_number": 2,
+      "date": "2027-03-15",
+      "base_city": "Nice",
+      "day_theme_or_summary": "Train to the coast and enjoy the sea.",
+      "timeline": [
+        {
+          "id": "d2-1",
+          "item_type": "transit",
+          "title": "High-speed train to Nice",
+          "start_time": "08:00",
+          "end_time": "13:30",
+          "duration_minutes": 330,
+          "location": { "name": "Gare de Lyon", "address": "" },
+          "transit_details": { "mode": "train", "provider_or_line": "TGV", "distance_km": 930 },
+          "notes_and_tips": [],
+          "estimated_cost": { "amount": 80, "currency": "EUR", "is_per_person": true }
+        },
+        {
+          "id": "d2-2",
+          "item_type": "activity",
+          "title": "Stroll the Promenade des Anglais",
+          "start_time": "15:00",
+          "end_time": "17:00",
+          "duration_minutes": 120,
+          "location": { "name": "Promenade des Anglais", "address": "Promenade des Anglais, 06000 Nice" },
+          "transit_details": null,
+          "notes_and_tips": ["Go at sunset for the best light."],
+          "estimated_cost": null
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "WARNING: Not everybody's budgetTier matches (2, 3). A compromise is needed. We have resolved this by picking mid-range places and adding a few free activities."
+  ]
+}
