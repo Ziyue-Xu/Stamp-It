@@ -87,7 +87,7 @@
             "priority": "critical"
         },
         "morningRoutine": {
-            "value": "WARNING: Not everybody's morningRoutine matches (early, late). User preferences: Alice (U001), early; Bob (U002), late",
+            "value": "WARNING: Not everybody's morningRoutine matches (late, early). User preferences: Alice (U001), early; Bob (U002), late",
             "priority": "critical"
         },
         "interestedInShopping": {

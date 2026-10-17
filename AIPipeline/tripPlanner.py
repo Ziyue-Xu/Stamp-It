@@ -141,7 +141,7 @@ def generate_trip_plan(familyJSON: dict) -> str:
         tools=[{"type": "google_maps"}],
         input=f"{master_preference}\n\n{request}",
         generation_config={
-            "thinking_level": "medium"
+            "thinking_level": "low"
         },
         response_format={
             "type": "text",
@@ -155,7 +155,7 @@ def generate_trip_plan(familyJSON: dict) -> str:
     return response.output_text
 
 # MAIN FUNCTION TO GENERATE TRIP PLAN. SIMPLY INPUT A VALID FAMILY JSON.
-def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests: str) -> str:
+def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests: str, activityIDs: list) -> str:
     request = tripPrompts.splitPrompt
     # Modify a trip plan to include splits based on a natural-language request.
     if not request.strip():
@@ -181,7 +181,7 @@ def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests:
         tools=[{"type": "google_maps"}],
         input=f"User Preferences: {userJson} \n\n Overall Preference: {familyJSON} \n\n Trip: {trip} \n\n Request: {request} \n\n Specific Requests: {specificRequests}",
         generation_config={
-            "thinking_level": "medium"
+            "thinking_level": "low"
         },
         response_format={
             "type": "text",
@@ -200,6 +200,8 @@ if __name__ == "__main__":
     # Load the family JSON data
     with open("family_1.json", "r", encoding="utf-8") as family_file:
         familyJSON = json.load(family_file)
+
+    # Testing block for initial trip plan generation    
     start_time = time.perf_counter()
 
     trip_plan = generate_trip_plan(familyJSON)
@@ -209,3 +211,14 @@ if __name__ == "__main__":
     print(f"Response time: {elapsed_time:.2f} seconds")
     with open("trip.json", "w", encoding="utf-8") as output_file:
         output_file.write(trip_plan)
+
+    # Testing block for split trip plan generation
+    with open("trip.json", "r", encoding="utf-8") as trip_file:
+        trip_plan = json.load(trip_file)
+
+    userID = "U001"  # Example user ID for testing
+    specificRequests = "Please ensure that the morning routine is early for all users."
+    activityIDs = ["d2-nezu-yanaka", "d2-ueno-park", "d3-meiji-jingu"]  # Example activity IDs for testing
+    split_trip_plan = split_trip_plan(familyJSON, userID, trip_plan, specificRequests, activityIDs)
+    with open("split_trip.json", "w", encoding="utf-8") as output_file:
+        output_file.write(split_trip_plan)
