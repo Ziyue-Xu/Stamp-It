@@ -12,12 +12,20 @@ redeems the code with Auth0, requires a verified matching email, and issues a
 This is a separate travel-app session, not a DeepSpace platform-auth session.
 It does not grant access to the DeepSpace records/realtime APIs.
 
-The Worker stores user and family data in private, app-owned
-`travel-users` and `travel-families` collections backed by DeepSpace RecordRoom.
+The Worker stores user, family, and generated plan data in private, app-owned
+`travel-users`, `travel-families`, and `travel-plans` collections backed by DeepSpace RecordRoom.
 The private collections are accessed only by the Worker after Auth0 session
 and family-membership checks; browser record permissions deny direct access.
 This uses the app's existing Durable Object binding and requires no custom
 Cloudflare binding, so it is compatible with the free DeepSpace tier.
+
+Completed itinerary JSON is stored separately in `travel-plans`, keyed by
+`familyCode`, so family records continue to match the AIPipeline template.
+After generation, any signed-in member of that family can request
+`GET /families/{familyCode}/plan` (or the `/travel/families/...` alias) to
+retrieve the saved itinerary. Non-members are denied; a family with no
+generated plan receives 404. The travel UI requests the stored plan before
+starting generation, while plan creation remains limited to the trip creator.
 
 Each stored `travel-families` record follows the AIPipeline family template:
 `familyCode`, `country`, separate ISO `startDate`/`endDate` and 24-hour

@@ -36,3 +36,13 @@ export const travelFamiliesSchema: CollectionSchema = {
   uniqueOn: ['familyCode'],
   permissions: privatePermissions,
 }
+
+export const travelPlansSchema: CollectionSchema = {
+  name: 'travel-plans',
+  columns: [
+    { name: 'familyCode', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'plan', storage: 'text', interpretation: { kind: 'json' }, required: true },
+  ],
+  uniqueOn: ['familyCode'],
+  permissions: privatePermissions,
+}

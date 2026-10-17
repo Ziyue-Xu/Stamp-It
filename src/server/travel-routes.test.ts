@@ -62,6 +62,28 @@ function cookieFrom(response: Response, name: string): string {
   return cookie.split(';', 1)[0]
 }
 
+async function signIn(
+  request: (path: string, init?: RequestInit) => Response | Promise<Response>,
+  name: string,
+  email: string,
+): Promise<string> {
+  const start = await request('/auth/start', {
+    method: 'POST',
+    headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email }),
+  })
+  const verify = await request('/auth/verify', {
+    method: 'POST',
+    headers: {
+      Origin: 'http://localhost',
+      Cookie: cookieFrom(start, 'travel_pending'),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, code: '1234' }),
+  })
+  return cookieFrom(verify, 'travel_session')
+}
+
 describe('Auth0 travel routes', () => {
   afterEach(() => vi.unstubAllGlobals())
 
@@ -75,6 +97,24 @@ describe('Auth0 travel routes', () => {
         Response.json({
           sub: 'auth0|creator',
           email: 'creator@example.com',
+          email_verified: true,
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({ access_token: 'member-access-token' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          sub: 'auth0|member',
+          email: 'member@example.com',
+          email_verified: true,
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({ access_token: 'outsider-access-token' }))
+      .mockResolvedValueOnce(
+        Response.json({
+          sub: 'auth0|outsider',
+          email: 'outsider@example.com',
           email_verified: true,
         }),
       )
@@ -95,6 +135,8 @@ describe('Auth0 travel routes', () => {
       body: JSON.stringify({ email: 'creator@example.com', code: '1234' }),
     })
     const sessionCookie = cookieFrom(verify, 'travel_session')
+    const memberCookie = await signIn(request, 'Member', 'member@example.com')
+    const outsiderCookie = await signIn(request, 'Outsider', 'outsider@example.com')
     const create = await request('/families', {
       method: 'POST',
       headers: {
@@ -310,6 +352,23 @@ describe('Auth0 travel routes', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(await response.json()).toEqual(itinerary)
+    expect(objects.get(`travel-plans/${familyId}`)).toBe(
+      JSON.stringify({ familyCode: familyId, plan: itinerary }),
+    )
+    for (const cookie of [sessionCookie, memberCookie]) {
+      const savedPlan = await request(`/travel/families/${familyId}/plan`, {
+        headers: { Cookie: cookie },
+      })
+      expect(savedPlan.status).toBe(200)
+      expect(await savedPlan.json()).toEqual(itinerary)
+    }
+    const outsiderPlan = await request(`/travel/families/${familyId}/plan`, {
+      headers: { Cookie: outsiderCookie },
+    })
+    expect(outsiderPlan.status).toBe(403)
+    expect(await outsiderPlan.json()).toEqual({
+      error: 'You are not a member of this family.',
+    })
     expect(geminiFetch).toHaveBeenCalledTimes(3)
     expect(geminiFetch.mock.calls[0]?.[0]).toBe(
       'https://generativelanguage.googleapis.com/v1beta/interactions',

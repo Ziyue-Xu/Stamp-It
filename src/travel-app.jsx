@@ -23,12 +23,9 @@ import { clearProfile, saveProfile } from '../my-travel-app/src/api/profileApi.j
 import { getTravelProfile } from '../my-travel-app/src/api/preferencesApi.js'
 import { planFromBackend } from '../my-travel-app/src/api/planFormat.js'
 
-async function travelPlanRequest(path, init) {
+async function travelPlanRequest(path, init, { allowNotFound = false } = {}) {
   const response = await fetch(path, init)
-  if (response.status === 403) {
-    throw new Error('Only the trip creator can generate the plan.')
-  }
-  if (!response.ok && response.status !== 202) {
+  if (!response.ok && response.status !== 202 && !(allowNotFound && response.status === 404)) {
     let error = 'Could not generate the plan. Please try again.'
     try {
       const data = await response.json()
@@ -43,6 +40,9 @@ async function travelPlanRequest(path, init) {
 
 async function generateGroupPlan(familyId, requestedByUserId) {
   const familyPath = `/families/${encodeURIComponent(familyId)}`
+  const saved = await travelPlanRequest(`${familyPath}/plan`, undefined, { allowNotFound: true })
+  if (saved.ok) return { plan: planFromBackend(await saved.json()) }
+
   const start = await travelPlanRequest(`${familyPath}/plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

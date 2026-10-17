@@ -341,6 +341,8 @@ function keyParts(key: string): { collection: string; recordId: string } {
   }
   const familyMatch = /^families\/(\d{4})\.json$/u.exec(key)
   if (familyMatch) return { collection: 'travel-families', recordId: familyMatch[1] }
+  const planMatch = /^plans\/(\d{4})\.json$/u.exec(key)
+  if (planMatch) return { collection: 'travel-plans', recordId: planMatch[1] }
   throw new Error('Invalid travel record key.')
 }
 
@@ -440,6 +442,10 @@ function userKey(userId: string): string {
 
 function familyKey(familyCode: string): string {
   return `families/${familyCode}.json`
+}
+
+function planKey(familyCode: string): string {
+  return `plans/${familyCode}.json`
 }
 
 function validFamilyCode(value: unknown): value is string {
@@ -1135,10 +1141,38 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       console.error('Gemini returned an itinerary with an invalid shape.')
       return jsonError(c, 'The trip planning service returned an invalid plan.', 502)
     }
+    try {
+      await putStored(c.env, planKey(familyCode), { familyCode, plan: response.plan })
+    } catch (error) {
+      console.error('Trip plan persistence failed.', error instanceof Error ? error.message : String(error))
+      return jsonError(c, 'The generated plan could not be saved.', 500)
+    }
     return c.json(response.plan)
   }
+  const getSavedPlan = async (c: Context<AppContext>) => {
+    const result = await currentSession(c)
+    if ('response' in result) return result.response
+
+    const familyCode = c.req.param('familyId')
+    if (!validFamilyCode(familyCode)) return jsonError(c, 'Family not found.', 404)
+    const access = await requireFamilyMember(c, familyCode, result.session.userId)
+    if ('response' in access) return access.response
+
+    const stored = await getStored<{ familyCode: string; plan: unknown }>(
+      c.env,
+      planKey(familyCode),
+    )
+    if (!stored) return jsonError(c, 'No saved trip plan was found.', 404)
+    if (stored.familyCode !== familyCode || !isGeneratedTripPlan(stored.plan)) {
+      console.error('Stored trip plan has an invalid shape.')
+      return jsonError(c, 'The saved trip plan is invalid.', 500)
+    }
+    return c.json(stored.plan)
+  }
   app.post('/families/:familyId/plan', generatePlan)
+  app.get('/families/:familyId/plan', getSavedPlan)
   app.get('/families/:familyId/plan/:interactionToken', pollPlan)
   app.post('/travel/families/:familyId/plan', generatePlan)
+  app.get('/travel/families/:familyId/plan', getSavedPlan)
   app.get('/travel/families/:familyId/plan/:interactionToken', pollPlan)
 }
