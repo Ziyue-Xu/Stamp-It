@@ -1,0 +1,27 @@
+.qicon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: var(--sky);
+}
+
+.qicon svg {
+  width: 58px;
+  height: 58px;
+}
+
+.qicon-small {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0;
+}
+
+.qicon-small svg {
+  width: 36px;
+  height: 36px;
+}
