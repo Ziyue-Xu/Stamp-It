@@ -1,11 +1,8 @@
-
-
 import { formatTime } from "../data/dates";
 import { formatMoney } from "../api/planFormat";
 import "./SplitBlock.css";
 
 const KIND_LABELS = { activity: "DO", meal: "EAT", lodging: "STAY", transit: "GO" };
-
 
 function formatMinutes(minutes) {
   if (!minutes) return "";
@@ -15,19 +12,20 @@ function formatMinutes(minutes) {
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
-
 function firstName(name) {
   return String(name || "").trim().split(/\s+/)[0] || "Someone";
 }
-
 
 function laneIdOf(item, userId) {
   const picked = item.picks && item.picks[userId];
   if (picked && item.groups.some((group) => group.id === picked)) return picked;
   const guess = item.groups.find((group) => group.members.some((m) => m.userId === userId));
-  return guess ? guess.id : null;
+  if (guess) return guess.id;
+  if (item.defaultGroup && item.groups.some((group) => group.id === item.defaultGroup)) {
+    return item.defaultGroup;
+  }
+  return null;
 }
-
 
 function everyone(item, members) {
   const seen = new Map();
@@ -40,13 +38,11 @@ function everyone(item, members) {
   return [...seen.entries()].map(([userId, name]) => ({ userId, name }));
 }
 
-
 function laneSummary(group) {
   const stops = group.items.filter((item) => item.type !== "transit");
   const last = group.items[group.items.length - 1];
   return { stopCount: stops.length, endsAt: last ? last.end : "" };
 }
-
 
 function LaneStop({ item }) {
   if (item.type === "transit") {
@@ -79,40 +75,41 @@ function LaneStop({ item }) {
   );
 }
 
-function SplitBlock({ item, me, members, onPick }) {
+function SplitBlock({ item, me, members, onPick, onSplitOff, onRemoveMine, splitting }) {
   const trackCount = item.groups.length;
   const regroup = item.regroup;
 
   const people = everyone(item, members);
   const myLane = laneIdOf(item, me);
   const myIndex = item.groups.findIndex((group) => group.id === myLane);
-  // people who are in no lane yet
   const undecided = people.filter((person) => laneIdOf(item, person.userId) === null);
+  const fromStop = item.origin === "stop";
+  const iOwnATrack = item.groups.some((group) => group.ownerId === me);
+  const canSplitOff = fromStop && onSplitOff && !iOwnATrack;
 
   return (
     <li className="plan-stop split-row">
-
       <div className="plan-stop-time">
         {formatTime(item.start)}
         {item.end && <span className="plan-stop-end">{"to " + formatTime(item.end)}</span>}
       </div>
 
       <div className="split-card">
-
         <div className="split-head">
           <span className="split-tag">SPLIT UP</span>
           <span className="split-count">
             {trackCount === 1 ? "1 track" : `${trackCount} tracks`}
           </span>
         </div>
-        <div className="split-title">{item.title || "Pick your track"}</div>
+        <div className="split-title">
+          {fromStop ? "Options for: " + item.title : item.title || "Pick your track"}
+        </div>
         <p className={"split-status" + (myLane ? "" : " split-status-todo")}>
           {myLane
             ? `YOU'RE ON TRACK ${myIndex + 1}. TAP ANOTHER TRACK TO SWITCH.`
             : "CHOOSE ONE TRACK BELOW."}
         </p>
 
-  
         <div className="split-lanes">
           {item.groups.map((group, index) => {
             const summary = laneSummary(group);
@@ -133,8 +130,15 @@ function SplitBlock({ item, me, members, onPick }) {
                     {summary.endsAt ? ` · done ${formatTime(summary.endsAt)}` : ""}
                   </span>
                 </div>
+                {group.kind === "original" && (
+                  <div className="split-lane-badge split-lane-badge-original">THE ORIGINAL PLAN</div>
+                )}
+                {group.kind === "alt" && (
+                  <div className="split-lane-badge">
+                    {group.ownerId === me ? "YOUR SPLIT" : firstName(group.ownerName).toUpperCase() + "'S SPLIT"}
+                  </div>
+                )}
                 {group.label && <div className="split-lane-label">{group.label}</div>}
-
 
                 <button
                   className={"split-join" + (isMine ? " split-join-on" : "")}
@@ -144,6 +148,12 @@ function SplitBlock({ item, me, members, onPick }) {
                 >
                   {isMine ? "YOU'RE IN THIS TRACK" : myLane ? "SWITCH TO THIS TRACK" : "JOIN THIS TRACK"}
                 </button>
+
+                {group.kind === "alt" && group.ownerId === me && onRemoveMine && (
+                  <button className="split-remove" onClick={() => onRemoveMine(group.id)}>
+                    REMOVE MY SPLIT
+                  </button>
+                )}
 
                 <div className="split-who">
                   {inLane.length === 0 && <span className="split-nobody">NO ONE YET</span>}
@@ -166,6 +176,11 @@ function SplitBlock({ item, me, members, onPick }) {
           })}
         </div>
 
+        {canSplitOff && (
+          <button className="split-offer" onClick={() => onSplitOff(item.id)} disabled={splitting}>
+            {splitting ? "FINDING AN IDEA..." : "+ SPLIT OFF WITH MY OWN IDEA"}
+          </button>
+        )}
 
         {undecided.length > 0 && (
           <div className="split-undecided">
@@ -178,7 +193,6 @@ function SplitBlock({ item, me, members, onPick }) {
           </div>
         )}
 
-   
         {regroup && (
           <div className="split-regroup">
             <span className="split-regroup-tag">REGROUP</span>

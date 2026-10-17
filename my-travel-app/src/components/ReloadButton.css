@@ -1,0 +1,37 @@
+.reload-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.reload-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.reload-btn:disabled {
+  cursor: wait;
+}
+.reload-btn-failed {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
+.reload-icon {
+  display: block;
+  font-size: 24px;
+  line-height: 1;
+}
+.reload-btn-busy .reload-icon {
+  animation: reload-spin 0.8s linear infinite;
+}
+@keyframes reload-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

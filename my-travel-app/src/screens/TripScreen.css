@@ -33,6 +33,12 @@
   justify-content: space-between;
 }
 
+.trip-page .tp-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .trip-page .back-btn {
   width: 44px;
   height: 44px;

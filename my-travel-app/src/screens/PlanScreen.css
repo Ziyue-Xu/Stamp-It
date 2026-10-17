@@ -1,12 +1,11 @@
-
 .plan-page {
-  --paper: #3a3d5c; /* navy background */
-  --ink: #f6ebcb; /* cream text */
+  --paper: #3a3d5c;
+  --ink: #f6ebcb;
   --ink-soft: #d8cdae;
-  --sky: #474c70; /* lighter navy for panels */
+  --sky: #474c70;
   --terracotta: #e4603a;
-  --gold: #edb04c; /* mustard */
-  --teal: #7fa46b; /* sage */
+  --gold: #edb04c;
+  --teal: #7fa46b;
   --pink: #efa3bb;
   --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -28,11 +27,16 @@
   padding: 24px;
 }
 
-
 .plan-page .plan-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.plan-page .plan-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .plan-page .back-btn {
@@ -58,7 +62,6 @@
   font-size: 12px;
   letter-spacing: 3px;
 }
-
 
 .plan-page .plan-header {
   display: flex;
@@ -93,7 +96,6 @@
   padding: 3px;
 }
 
-
 .plan-page .plan-sample {
   margin: 0;
   padding: 10px 14px;
@@ -106,7 +108,6 @@
   letter-spacing: 1px;
 }
 
-
 .plan-page .plan-subtitle {
   margin: 10px 0 0;
   color: var(--ink-soft);
@@ -117,6 +118,7 @@
 .plan-page .plan-route {
   display: flex;
   align-items: center;
+  justify-content: safe center;
   padding: 12px 14px;
   border: 2px solid var(--ink-soft);
   border-radius: 6px;
@@ -125,14 +127,18 @@
 .plan-page .plan-route-item {
   display: flex;
   align-items: center;
-  flex: 1 0 auto;
+  flex: none;
 }
 .plan-page .plan-route-line {
-  flex: 1;
-  min-width: 18px;
-  height: 0;
-  margin: 0 8px;
-  border-top: 3px dotted var(--ink-soft);
+  margin: 0 14px 4px;
+  color: var(--gold);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+.plan-page .plan-route-line::before {
+  content: "\2192";
 }
 .plan-page .plan-route-stop {
   display: flex;
@@ -261,7 +267,6 @@
   opacity: 0.85;
 }
 
-
 .plan-page .plan-tab-selected {
   border-color: var(--ink);
   background: var(--gold);
@@ -271,7 +276,6 @@
 .plan-page .plan-tab-selected:hover {
   transform: rotate(-2deg);
 }
-
 
 .plan-page .plan-day-head {
   margin-bottom: 16px;
@@ -311,7 +315,6 @@
   color: var(--gold);
 }
 
-
 .plan-page .plan-stops {
   position: relative;
   display: flex;
@@ -350,7 +353,6 @@
   font-size: 10px;
   opacity: 0.8;
 }
-
 
 .plan-page .plan-stop-transit .plan-stop-time {
   padding-top: 6px;
@@ -392,7 +394,6 @@
   font-size: 11px;
   color: var(--ink-soft);
 }
-
 
 .plan-page .plan-card {
   flex: 1;

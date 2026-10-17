@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Stamp from "../components/Stamp";
@@ -6,12 +5,20 @@ import { LandscapeArt } from "../components/stampArt";
 import { DESTINATION_STAMPS } from "../components/destinationStamps";
 import { formatDay, formatTime } from "../data/dates";
 import SplitBlock from "../components/SplitBlock";
+import ReloadButton from "../components/ReloadButton";
 import { formatMoney, sortItems, recalculatePlan } from "../api/planFormat";
-import { savePlan, resetPlan } from "../api/planApi";
+import { savePlan, resetPlan, requestAlternative } from "../api/planApi";
+import {
+  canSplitStop,
+  splitStopOf,
+  splitOffStop,
+  addAlternativeTrack,
+  removeAlternativeTrack,
+  pickTrack,
+} from "../api/splitEdit";
 import { getCreatorId } from "../api/tripApi";
 import "./PlanScreen.css";
 import "./PlanEdit.css";
-
 
 const TYPE_LABELS = {
   activity: "DO",
@@ -19,7 +26,6 @@ const TYPE_LABELS = {
   lodging: "STAY",
   transit: "GO",
 };
-
 
 const MODE_LABELS = {
   walking: "WALK",
@@ -34,12 +40,10 @@ const MODE_LABELS = {
   bike: "BIKE",
 };
 
-
 function weekdayOf(dateText) {
   const [year, month, day] = dateText.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", { weekday: "short" });
 }
-
 
 function formatMinutes(minutes) {
   if (!minutes) return "";
@@ -49,14 +53,12 @@ function formatMinutes(minutes) {
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
-
 function timeRange(item) {
   if (!item.end || item.end === "23:59" || item.end === item.start) {
     return [formatTime(item.start)];
   }
   return [formatTime(item.start), "to " + formatTime(item.end)];
 }
-
 
 const KIND_CHOICES = [
   ["activity", "DO"],
@@ -65,20 +67,16 @@ const KIND_CHOICES = [
   ["transit", "GO"],
 ];
 
-
 function toMinutes(timeText) {
   const [hours, mins] = timeText.split(":").map(Number);
   return hours * 60 + mins;
 }
 
-
 function newStopId() {
   return "mine-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
 }
 
-
 function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
-  // MEMORY: what is typed in each box right now
   const [type, setType] = useState(initial.type);
   const [title, setTitle] = useState(initial.title);
   const [start, setStart] = useState(initial.start);
@@ -89,7 +87,6 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
   const [problem, setProblem] = useState("");
 
   const isNew = !initial.id;
-
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -108,7 +105,6 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
       setProblem("Cost should be a number like 12 or 7.50.");
       return;
     }
-
 
     let minutes = null;
     if (start && end && end !== "23:59") minutes = toMinutes(end) - toMinutes(start);
@@ -135,7 +131,6 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
         <span className="plan-field-label">WHAT KIND</span>
         <div className="plan-kind-choices">
           {KIND_CHOICES.map(([value, label]) => (
-
             <button
               type="button"
               key={value}
@@ -201,13 +196,8 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
       {problem && <p className="plan-form-problem" role="alert">{problem}</p>}
 
       <div className="plan-form-actions">
-
         <button type="submit" className="plan-form-save">SAVE</button>
-
-
         <button type="button" className="plan-form-cancel" onClick={onCancel}>CANCEL</button>
-
-
         {onDelete && (
           <button type="button" className="plan-form-delete" onClick={onDelete}>REMOVE</button>
         )}
@@ -215,7 +205,6 @@ function StopForm({ initial, currency, onSave, onCancel, onDelete }) {
     </form>
   );
 }
-
 
 function TransitRow({ item, onEdit }) {
   const [startText] = timeRange(item);
@@ -236,15 +225,13 @@ function TransitRow({ item, onEdit }) {
             {bits.length > 0 ? (item.transit && item.transit.line ? " · " : "") + bits.join(" · ") : ""}
           </span>
         </span>
-
         <button className="plan-edit-btn" onClick={onEdit} aria-label={"Edit " + item.title}>EDIT</button>
       </div>
     </li>
   );
 }
 
-
-function StopCard({ item, open, onToggle, onEdit }) {
+function StopCard({ item, open, onToggle, onEdit, onSplit, splitting }) {
   const [startText, endText] = timeRange(item);
   const hasTips = item.tips.length > 0;
   return (
@@ -269,7 +256,6 @@ function StopCard({ item, open, onToggle, onEdit }) {
         {item.address && <div className="plan-card-address">{item.address}</div>}
         {item.addedBy && <div className="plan-added-by">ADDED BY {item.addedBy.name.toUpperCase()}</div>}
 
-
         {hasTips && (
           <button className="plan-tips-btn" onClick={onToggle} aria-expanded={open}>
             {open ? "HIDE TIPS" : `TIPS (${item.tips.length})`}
@@ -279,6 +265,11 @@ function StopCard({ item, open, onToggle, onEdit }) {
         <button className="plan-edit-btn" onClick={onEdit} aria-label={"Edit " + item.title}>
           EDIT
         </button>
+        {onSplit && (
+          <button className="plan-edit-btn" onClick={onSplit} disabled={splitting}>
+            {splitting ? "FINDING AN IDEA..." : "NOT FOR ME? SPLIT OFF"}
+          </button>
+        )}
         {hasTips && open && (
           <ul className="plan-tips">
             {item.tips.map((tip, index) => (
@@ -291,36 +282,31 @@ function StopCard({ item, open, onToggle, onEdit }) {
   );
 }
 
-function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerate, onBack }) {
-
+function PlanScreen({ plan, trip, profile, onPlanChange, onRegenerate, onReload, onBack }) {
   const [dayIndex, setDayIndex] = useState(0);
   const [openTips, setOpenTips] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [saveState, setSaveState] = useState("");
-
   const [regenerating, setRegenerating] = useState(false);
   const [regenError, setRegenError] = useState("");
-
+  const [splittingId, setSplittingId] = useState(null);
+  const [splitError, setSplitError] = useState("");
 
   const isCreator = getCreatorId(trip) === profile.userId;
 
   const day = plan.days[dayIndex];
   const currency = (plan.total && plan.total.currency) || (day.total && day.total.currency) || "EUR";
 
-
   async function commit(newPlan) {
     onPlanChange(newPlan);
     setSaveState("saving");
     try {
-      const where = onSavePlan
-        ? await onSavePlan(newPlan)
-        : await savePlan(trip.familyId, profile.userId, newPlan);
+      const where = await savePlan(trip.familyId, profile.userId, newPlan);
       setSaveState(where === "device" ? "device" : "saved");
     } catch (problem) {
       setSaveState("failed");
     }
   }
-
 
   function planWithDayItems(items) {
     const days = plan.days.map((d, index) =>
@@ -329,7 +315,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     return recalculatePlan({ ...plan, days });
   }
 
-  
   function handleSaveStop(stop) {
     const isOld = Boolean(stop.id) && day.items.some((item) => item.id === stop.id);
     const items = isOld
@@ -346,30 +331,47 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     commit(planWithDayItems(items));
   }
 
-
   function handleDeleteStop(id) {
     if (!window.confirm("Remove this stop from the itinerary?")) return;
     setEditingId(null);
     commit(planWithDayItems(day.items.filter((item) => item.id !== id)));
   }
 
- 
   function handlePickTrack(splitId, groupId) {
-    const days = plan.days.map((d, index) =>
-      index !== dayIndex
-        ? d
-        : {
-            ...d,
-            items: d.items.map((item) =>
-              item.id === splitId
-                ? { ...item, picks: { ...(item.picks || {}), [profile.userId]: groupId } }
-                : item
-            ),
-          }
-    );
-    commit({ ...plan, days });
+    commit(planWithDayItems(pickTrack(day.items, splitId, groupId, profile.userId)));
   }
 
+  async function handleSplitOff(itemId) {
+    if (splittingId) return;
+    const target = day.items.find((item) => item.id === itemId);
+    if (!target) return;
+    const stop = splitStopOf(target);
+    setSplittingId(itemId);
+    setSplitError("");
+    try {
+      const alternative = await requestAlternative({
+        familyId: trip.familyId,
+        userId: profile.userId,
+        stop,
+        day,
+        currency,
+      });
+      const person = { userId: profile.userId, name: profile.name };
+      const items =
+        target.type === "split"
+          ? addAlternativeTrack(day.items, itemId, alternative, person)
+          : splitOffStop(day.items, itemId, alternative, person);
+      commit(planWithDayItems(items));
+    } catch (problem) {
+      setSplitError(problem.message || "Could not find an alternative. Please try again.");
+    }
+    setSplittingId(null);
+  }
+
+  function handleRemoveMine(splitId, groupId) {
+    if (!window.confirm("Remove your split? Everyone on it goes back to the original plan.")) return;
+    commit(planWithDayItems(removeAlternativeTrack(day.items, splitId, groupId, profile.userId)));
+  }
 
   async function handleRegenerate() {
     if (regenerating) return;
@@ -383,7 +385,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     setRegenerating(true);
     setRegenError("");
     try {
-
       await onRegenerate();
       setEditingId(null);
       setDayIndex(0);
@@ -395,7 +396,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     setRegenerating(false);
   }
 
-
   async function handleReset() {
     if (!window.confirm("Throw away everyone's edits and go back to the original itinerary?")) return;
     const result = await resetPlan(trip.familyId, trip);
@@ -405,7 +405,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     setSaveState("");
   }
 
- 
   const blankStop = {
     id: "",
     type: "activity",
@@ -428,15 +427,15 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
   return (
     <div className="plan-page">
     <main className="plan">
-
       <div className="plan-top">
-
         <button className="back-btn" onClick={onBack} aria-label="Back to the trip">
           &larr;
         </button>
-        <span className="plan-label">GROUP ITINERARY</span>
+        <div className="plan-top-right">
+          <span className="plan-label">GROUP ITINERARY</span>
+          {onReload && <ReloadButton onReload={onReload} />}
+        </div>
       </div>
-
 
       <header className="plan-header">
         <div className="plan-header-text">
@@ -454,7 +453,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         </div>
       </header>
 
-
       {plan.cities.length > 1 && (
         <section className="plan-route" aria-label="Route">
           {plan.cities.map((city, index) => (
@@ -471,14 +469,12 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         </section>
       )}
 
-
       {plan.isSample && (
         <p className="plan-sample">
           EXAMPLE ITINERARY. Shown while the backend isn't building plans yet.
           Your edits and track picks are kept in this browser only.
         </p>
       )}
-
 
       <p className={"plan-savestate" + (saveState === "failed" ? " plan-savestate-failed" : "")} aria-live="polite">
         {saveState === "saving" && "SAVING..."}
@@ -487,12 +483,10 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         {saveState === "failed" && (
           <>
             COULDN'T SAVE YOUR CHANGES.
-
             <button className="plan-link-btn" onClick={() => commit(plan)}>TRY AGAIN</button>
           </>
         )}
       </p>
-
 
       {plan.notes && plan.notes.length > 0 && (
         <section className="plan-blend">
@@ -509,10 +503,8 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         </section>
       )}
 
-
       <nav className="plan-tabs" aria-label="Days">
         {plan.days.map((planDay, index) => (
-
           <button
             key={planDay.dayNumber}
             className={"plan-tab" + (index === dayIndex ? " plan-tab-selected" : "")}
@@ -528,7 +520,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
           </button>
         ))}
       </nav>
-
 
       <AnimatePresence mode="wait">
         <motion.section
@@ -554,6 +545,8 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
             <div className="plan-day-theme">{day.theme}</div>
           </div>
 
+          {splitError && <p className="plan-form-problem" role="alert">{splitError}</p>}
+
           <ol className="plan-stops">
             {day.items.map((item) =>
               editingId === item.id ? (
@@ -567,13 +560,15 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
                   />
                 </li>
               ) : item.type === "split" ? (
-
                 <SplitBlock
                   item={item}
                   key={item.id}
                   me={profile.userId}
                   members={trip.members || []}
                   onPick={(groupId) => handlePickTrack(item.id, groupId)}
+                  onSplitOff={handleSplitOff}
+                  onRemoveMine={(groupId) => handleRemoveMine(item.id, groupId)}
+                  splitting={splittingId === item.id}
                 />
               ) : item.type === "transit" ? (
                 <TransitRow item={item} key={item.id} onEdit={() => setEditingId(item.id)} />
@@ -584,6 +579,8 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
                   open={Boolean(openTips[item.id])}
                   onToggle={() => toggleTips(item.id)}
                   onEdit={() => setEditingId(item.id)}
+                  onSplit={canSplitStop(item) ? () => handleSplitOff(item.id) : null}
+                  splitting={splittingId === item.id}
                 />
               )
             )}
@@ -599,7 +596,6 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
             )}
           </ol>
 
-
           {editingId !== "new" && (
             <button className="plan-add-btn" onClick={() => setEditingId("new")}>
               + ADD A STOP
@@ -608,13 +604,11 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         </motion.section>
       </AnimatePresence>
 
-
       {plan.isSample && (
         <button className="plan-reset-btn" onClick={handleReset}>
           UNDO ALL EDITS
         </button>
       )}
-
 
       {isCreator && onRegenerate && (
         <div className="plan-regen">

@@ -24,6 +24,7 @@ import {
   getMyTrips,
   refreshMemberInTrips,
   updateTrip,
+  findTripByCode,
   deleteTrip,
   leaveTrip,
   getCreatorId,
@@ -279,6 +280,15 @@ function App() {
     return result;
   }
 
+  async function handleReloadTrip() {
+    const fresh = await findTripByCode(trip.tripCode);
+    const result = await getExistingPlan(fresh.familyId || trip.familyId, fresh);
+    const saved = await getTravelProfile(profile.userId, trip.familyId);
+    setTrip(fresh);
+    setHasTripPreferences(Boolean(saved && hasAnyAnswer(saved)));
+    if (result.plan) setPlan(result.plan);
+  }
+
   async function handleDeleteTrip() {
     await deleteTrip(trip, profile.userId);
     await showDashboard(profile);
@@ -390,6 +400,7 @@ function App() {
           profile={profile}
           onPlanChange={setPlan}
           onRegenerate={handleGeneratePlan}
+          onReload={handleReloadTrip}
           onBack={() => setScreen("trip")}
         />
       )}
@@ -407,6 +418,7 @@ function App() {
           onViewPlan={() => setScreen("plan")}
           onDeleteTrip={handleDeleteTrip}
           onLeaveTrip={handleLeaveTrip}
+          onReload={handleReloadTrip}
         />
       )}
     </div>

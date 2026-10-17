@@ -9,6 +9,7 @@ import { PREFERENCE_QUESTIONS } from "../data/preferenceQuestions";
 import { findDestination } from "../data/destinations";
 import { findAvatar } from "../data/avatars";
 import AvatarArt from "../components/AvatarArt";
+import ReloadButton from "../components/ReloadButton";
 import {
   formatDateRange,
   describeTripTiming,
@@ -31,6 +32,7 @@ function TripScreen({
   onViewPlan,
   onDeleteTrip,
   onLeaveTrip,
+  onReload,
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -103,7 +105,10 @@ function TripScreen({
           <button className="back-btn" onClick={onBack} aria-label="Back to my trips">
             &larr;
           </button>
-          <span className="tp-code">CODE {trip.tripCode}</span>
+          <div className="tp-top-right">
+            <span className="tp-code">CODE {trip.tripCode}</span>
+            {onReload && <ReloadButton onReload={onReload} />}
+          </div>
         </div>
 
         <header className="tp-header">
