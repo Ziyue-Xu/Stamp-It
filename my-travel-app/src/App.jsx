@@ -1,31 +1,36 @@
 import { useState } from "react";
-import WelcomeScreen from "./screens/WelcomeScreen";
+import CreateTripScreen from "./screens/CreateTripScreen";
 
 function App() {
-  const [message, setMessage] = useState("(click a button)");
+  const [destinationId, setDestinationId] = useState(null);
+  const [sent, setSent] = useState("(nothing sent yet)");
 
   return (
     <>
-      <WelcomeScreen
-        onStartTrip={() => setMessage("onStartTrip() was called")}
-        onJoinTrip={() => setMessage("onJoinTrip() was called")}
+      <CreateTripScreen
+        selectedId={destinationId}
+        onSelect={setDestinationId}
+        onCreate={async (data) => {
+          setSent(JSON.stringify({ destinationId, ...data }, null, 2));
+        }}
+        onBack={() => setSent("onBack() was called")}
       />
-      {/* This little note is only for testing. It is not part of the screen. */}
-      <div
+      {/* Testing note only. It is not part of the screen. */}
+      <pre
         style={{
           position: "fixed",
           top: 8,
-          left: 8,
-          padding: "4px 10px",
+          right: 8,
+          margin: 0,
+          padding: "6px 10px",
           background: "#fff",
           color: "#000",
-          fontSize: 13,
-          fontFamily: "system-ui",
+          fontSize: 12,
           zIndex: 99,
         }}
       >
-        {message}
-      </div>
+        {sent}
+      </pre>
     </>
   );
 }
