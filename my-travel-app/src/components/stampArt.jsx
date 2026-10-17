@@ -54,7 +54,7 @@ export function TajMahalArt() {
 export function LibertyArt() {
   return (
     <svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="100" height="130" fill={MUSTARD} />
+      <rect width="100" height="130" fill={MINT} />
      
       <path d="M70 6 C64 12 64 18 70 22 C76 18 76 12 70 6 Z" fill={ORANGE} />
       <g stroke={NAVY} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round">

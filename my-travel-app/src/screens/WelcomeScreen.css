@@ -30,6 +30,7 @@
 
 .welcome-collage {
   position: relative;
+  top: 40px;
   height: 530px;
 }
 
@@ -45,7 +46,7 @@
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 62px;
+  font-size: 70px;
   letter-spacing: -0.05em;
   line-height: 0.96;
   text-transform: uppercase;
@@ -58,7 +59,7 @@
   font-family: var(--font-label);
   font-size: 12px;
   letter-spacing: 2px;
-  color: var(--gold);
+  color: var(--pink);
 }
 
 .welcome-buttons {
@@ -102,7 +103,7 @@
 }
 .welcome .btn-primary {
   border: 2px solid transparent;
-  background: var(--gold);
+  background: var(--pink);
   color: var(--paper);
 }
 .welcome .btn-secondary {

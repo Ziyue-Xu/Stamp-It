@@ -84,10 +84,11 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
 
         <div className="welcome-bottom">
           <h1 className="welcome-title rise" style={{ "--d": "1.2s" }}>
-            Travel,
+            Stamp It!
             <br />
-            together
+            
           </h1>
+  
           <div className="welcome-tag rise" style={{ "--d": "1.35s" }}>
             GROUP TRIPS, MADE EASY
           </div>
