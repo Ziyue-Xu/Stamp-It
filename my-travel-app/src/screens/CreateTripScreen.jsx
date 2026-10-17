@@ -1,3 +1,5 @@
+
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -8,6 +10,8 @@ import {
 import { todayString } from "../data/dates";
 import "./CreateTripScreen.css";
 import Stamp from "../components/Stamp";
+import CityPicker from "../components/CityPicker";
+import { countryCodeFor } from "../data/countryCodes";
 import {
   TajMahalArt,
   LibertyArt,
@@ -23,7 +27,6 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   const editing = Boolean(initialTrip);
 
 
-
   const [query, setQuery] = useState("");
   const [startDate, setStartDate] = useState(editing ? initialTrip.startDate : "");
   const [endDate, setEndDate] = useState(editing ? initialTrip.endDate : "");
@@ -35,21 +38,27 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   const [departureCity, setDepartureCity] = useState(
     editing ? initialTrip.departureCity || "" : ""
   );
+
+  const [arrivalCityOk, setArrivalCityOk] = useState(true);
+  const [departureCityOk, setDepartureCityOk] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-
+  // The matches for what's typed
   const results = searchDestinations(query);
   const popular = POPULAR_IDS.map(findDestination);
   const selected = findDestination(selectedId);
-
+  // The picked country's 2-letter code (like "MX") until one is picked.
+  // The city boxes use it to only show cities inside that country.
+  const countryCode = countryCodeFor(selectedId);
 
   const today = todayString();
   const keepsOldStart = editing && startDate === initialTrip.startDate;
   const startOk = startDate >= today || keepsOldStart;
   const datesOk = startDate !== "" && endDate !== "" && startOk && endDate >= startDate;
-  // The earliest day the start-date box lets you pick
+  // The earliest day the start-date box lets you pick.
   const startMin = keepsOldStart && initialTrip.startDate < today ? initialTrip.startDate : today;
+
 
   const timesFilled = arrivalTime !== "" && departureTime !== "";
   const sameDayProblem =
@@ -67,21 +76,27 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     arrivalCity.trim() !== (initialTrip.arrivalCity || "") ||
     departureCity.trim() !== (initialTrip.departureCity || "");
 
-  const canCreate = Boolean(selectedId) && datesOk && timesOk && changed;
+  // A typed city that was never picked from the list is not OK yet.
+  const citiesOk = arrivalCityOk && departureCityOk;
+
+  const canCreate = Boolean(selectedId) && datesOk && timesOk && citiesOk && changed;
 
 
   function handlePick(id) {
+    if (id !== selectedId) {
+      setArrivalCity("");
+      setDepartureCity("");
+    }
     onSelect(id);
     setQuery("");
   }
 
-  // Pressing Enter in the search box picks the first result.
+
   function handleSearchKeyDown(event) {
     if (event.key === "Enter" && results.length > 0) {
       handlePick(results[0].id);
     }
   }
-
 
   function handleStartDateChange(event) {
     const value = event.target.value;
@@ -97,7 +112,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     setBusy(true);
     setError("");
     try {
-
+    
       const send = editing ? onSave : onCreate;
       await send({
         startDate,
@@ -116,7 +131,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   return (
     <div className="create-page">
     <main className="create">
-
+   
       <div className="create-top">
 
         <button className="back-btn" onClick={onBack} aria-label="Go back">
@@ -247,57 +262,78 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
         </div>
       </div>
 
-<p className="time-hint">
+
+      <div className="date-row">
+        <div className="date-field">
+          <label className="field-label" htmlFor="arrival-time">
+            Arrival time
+          </label>
+          <input
+            id="arrival-time"
+            className="date-input"
+            type="time"
+            value={arrivalTime}
+            onChange={(event) => setArrivalTime(event.target.value)}
+          />
+        </div>
+        <div className="date-field">
+          <label className="field-label" htmlFor="departure-time">
+            Departure time
+          </label>
+          <input
+            id="departure-time"
+            className="date-input"
+            type="time"
+            value={departureTime}
+            onChange={(event) => setDepartureTime(event.target.value)}
+          />
+        </div>
+      </div>
+      <p className="time-hint">
         {sameDayProblem
           ? "On a one-day trip, the departure has to be after the arrival."
           : "Required. When you land on the first day, and when you head home on the last."}
       </p>
 
-
+ 
       <div className="date-row">
-        <div className="date-field">
-          <label className="field-label" htmlFor="arrival-city">
-            Arrival city (optional)
-          </label>
-          <input
-            id="arrival-city"
-            className="date-input"
-            type="text"
-            value={arrivalCity}
-            maxLength={60}
-            placeholder="e.g. Paris"
-            autoComplete="off"
-            onChange={(event) => setArrivalCity(event.target.value)}
-          />
-        </div>
-        <div className="date-field">
-          <label className="field-label" htmlFor="departure-city">
-            Departure city (optional)
-          </label>
-          <input
-            id="departure-city"
-            className="date-input"
-            type="text"
-            value={departureCity}
-            maxLength={60}
-            placeholder="e.g. Nice"
-            autoComplete="off"
-            onChange={(event) => setDepartureCity(event.target.value)}
-          />
-        </div>
+        <CityPicker
+          id="arrival-city"
+          label="Arrival city"
+          placeholder={selected ? `City in ${selected.name}` : "e.g. Paris"}
+          countryCode={countryCode}
+          countryName={selected ? selected.name : ""}
+          value={arrivalCity}
+          onChange={setArrivalCity}
+          onValidChange={setArrivalCityOk}
+        />
+        <CityPicker
+          id="departure-city"
+          label="Departure city"
+          placeholder={selected ? `City in ${selected.name}` : "e.g. Nice"}
+          countryCode={countryCode}
+          countryName={selected ? selected.name : ""}
+          value={departureCity}
+          onChange={setDepartureCity}
+          onValidChange={setDepartureCityOk}
+        />
       </div>
       <p className="time-hint">
-        Already booked your tickets? Add the city you fly into and the city you fly home from.
+        {!selected
+          ? "Optional. Pick your destination first, then you can add the cities you fly into and out of."
+          : citiesOk
+          ? `Optional. Already booked your tickets? Add the city you fly into and the city you fly home from, in ${selected.name}.`
+          : "Tap a city from the list so we know it's real. Or clear the box to skip it."}
       </p>
 
-     
+
       {error && (
         <p className="time-hint" style={{ color: "var(--terracotta)", fontWeight: 700 }}>
           {error}
         </p>
       )}
 
- 
+
       <motion.button
         className="btn-go"
         onClick={handleCreateClick}

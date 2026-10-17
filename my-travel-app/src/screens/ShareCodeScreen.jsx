@@ -55,7 +55,7 @@ function ShareCodeScreen({ trip, onContinue }) {
         </div>
       )}
       <p className="share-sub">
-        Send this code to your group. They'll type it in on the Join screen.
+        Send this code to your family. They'll type it in on the join screen.
       </p>
 
   
