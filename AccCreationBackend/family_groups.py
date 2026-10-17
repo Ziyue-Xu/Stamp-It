@@ -1,3 +1,10 @@
+import hashlib
+import json
+import os
+import re
+import secrets
+import tempfile
+from datetime import date, time
 from pathlib import Path
 
 FAMILY_CODE_ALPHABET = "0123456789"
@@ -221,7 +228,9 @@ class LocalFamilyStore:
             if country or start_date or end_date:
                 trip = {
                     "country": country or "",
+                    "start_city": saved_group.get("startCity", ""),
                     "start_date": start_date or "",
+                    "end_city": saved_group.get("endCity", ""),
                     "end_date": end_date or "",
                     "start_time": saved_group.get("startTime", ""),
                     "end_time": saved_group.get("endTime", ""),
@@ -233,6 +242,9 @@ class LocalFamilyStore:
                         trip["end_date"],
                         trip["start_time"],
                         trip["end_time"],
+                        trip["start_city"],
+                        trip["end_city"],
+                        allow_missing_cities=True,
                     )
                 group["trip"] = trip
             groups[family_id] = group
@@ -283,7 +295,9 @@ class LocalFamilyStore:
             if country or start_date or end_date:
                 group["trip"] = {
                     "country": country,
+                    "start_city": saved_group.get("startCity", ""),
                     "start_date": start_date,
+                    "end_city": saved_group.get("endCity", ""),
                     "end_date": end_date,
                     "start_time": saved_group.get("startTime", ""),
                     "end_time": saved_group.get("endTime", ""),
@@ -332,6 +346,9 @@ class LocalFamilyStore:
             trip_details.get("end_date"),
             trip_details.get("start_time"),
             trip_details.get("end_time"),
+            trip_details.get("start_city"),
+            trip_details.get("end_city"),
+            allow_missing_cities=False,
         )
         self._write_groups(groups)
         return group
@@ -357,11 +374,14 @@ class LocalFamilyStore:
             if not isinstance(trip_details, dict):
                 raise ValueError("Family trip settings are invalid.")
             group["trip"] = validate_trip_details(
-                trip_details.get("country"),
-                trip_details.get("start_date"),
-                trip_details.get("end_date"),
-                trip_details.get("start_time"),
-                trip_details.get("end_time"),
+                country=trip_details.get("country"),
+                start_date=trip_details.get("start_date"),
+                end_date=trip_details.get("end_date"),
+                start_time=trip_details.get("start_time"),
+                end_time=trip_details.get("end_time"),
+                start_city=trip_details.get("start_city"),
+                end_city=trip_details.get("end_city"),
+                allow_missing_cities=False,
             )
         groups[key] = group
         self._write_groups(groups)
@@ -412,7 +432,9 @@ class LocalFamilyStore:
             record = {
                 "familyCode": family_id,
                 "country": trip.get("country", ""),
+                "startCity": trip.get("start_city", ""),
                 "startDate": trip.get("start_date", ""),
+                "endCity": trip.get("end_city", ""),
                 "endDate": trip.get("end_date", ""),
                 "startTime": trip.get("start_time", ""),
                 "endTime": trip.get("end_time", ""),
@@ -443,7 +465,16 @@ def validate_family_code(code):
     return normalized_code
 
 
-def validate_trip_details(country, start_date, end_date, start_time, end_time):
+def validate_trip_details(
+    country,
+    start_date,
+    end_date,
+    start_time,
+    end_time,
+    start_city="",
+    end_city="",
+    allow_missing_cities=False,
+):
     if not isinstance(country, str):
         raise ValueError("Enter the country your family is travelling to.")
     country = country.strip()
@@ -453,6 +484,21 @@ def validate_trip_details(country, start_date, end_date, start_time, end_time):
         or any(ord(character) < 32 for character in country)
     ):
         raise ValueError("Country must be between 1 and 100 characters.")
+    cities = {}
+    for field, label, city in (
+        ("start_city", "Start city", start_city),
+        ("end_city", "End city", end_city),
+    ):
+        if not isinstance(city, str):
+            raise ValueError(f"Enter the {label.casefold()} for the trip.")
+        city = city.strip()
+        if (
+            (not city and not allow_missing_cities)
+            or len(city) > 100
+            or any(ord(character) < 32 for character in city)
+        ):
+            raise ValueError(f"{label} must be between 1 and 100 characters.")
+        cities[field] = city
     if not isinstance(start_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", start_date):
         raise ValueError("Enter the travel start date as YYYY-MM-DD.")
     if not isinstance(end_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", end_date):
@@ -483,6 +529,7 @@ def validate_trip_details(country, start_date, end_date, start_time, end_time):
         raise ValueError("The travel end date must be after the start date.")
     return {
         "country": country,
+        **cities,
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
         "start_time": parsed_start_time.isoformat(timespec="minutes"),
@@ -495,13 +542,22 @@ def validate_trip_details(country, start_date, end_date, start_time, end_time):
 def collect_trip_details():
     while True:
         country = input("Country you are travelling to: ").strip()
+        start_city = input("Travel start city: ").strip()
         start_date = input("Travel start date (YYYY-MM-DD): ").strip()
         start_time = input("Travel start time (24-hour HH:MM): ").strip()
+        end_city = input("Travel end city: ").strip()
         end_date = input("Travel end date (YYYY-MM-DD): ").strip()
         end_time = input("Travel end time (24-hour HH:MM): ").strip()
         try:
             return validate_trip_details(
-                country, start_date, end_date, start_time, end_time
+                country,
+                start_date,
+                end_date,
+                start_time,
+                end_time,
+                start_city,
+                end_city,
+                allow_missing_cities=False,
             )
         except ValueError as error:
             print(f"{error} Please enter the trip details again.")
@@ -512,8 +568,10 @@ def format_trip_details(trip):
         return "No shared trip details are saved for this family group."
     return (
         f"Country: {trip.get('country', 'Unknown')}\n"
+        f"Start city: {trip.get('start_city') or 'Not set'}\n"
         f"Travel starts: {trip.get('start_date', 'Unknown')} at "
         f"{trip.get('start_time', 'Not set')}\n"
+        f"End city: {trip.get('end_city') or 'Not set'}\n"
         f"Travel ends: {trip.get('end_date', 'Unknown')} at "
         f"{trip.get('end_time', 'Not set')}\n"
         f"Duration: {trip.get('duration_days', 'Unknown')} days between the dates; "
