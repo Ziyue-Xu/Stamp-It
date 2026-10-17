@@ -396,6 +396,7 @@ function namesAFile(pathname: string): boolean {
  * real miss and this worker makes the call the asset layer cannot.
  */
 export function registerStaticRoutes(app: Hono<AppContext>): void {
+  app.get('/', (c) => c.redirect('/travel', 302))
   app.get('/travel', (c) => c.env.ASSETS.fetch(new Request(new URL('/travel.html', c.req.url))))
   app.get('/travel/*', async (c, next) => {
     const pathname = new URL(c.req.url).pathname
