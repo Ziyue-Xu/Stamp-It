@@ -64,6 +64,7 @@ class Split(BaseModel):
     id: str = Field(description="Unique identifier for the split")
     start_time: str = Field(description="24-hour local time when the group separates, e.g., '14:00'")
     end_time: str = Field(description="24-hour local time when the group begins to reunite, e.g., '16:30'")
+    reason: str = Field(description="Why the group is splitting")
     branches: List[SplitBranch] = Field(
         description="Parallel branch itineraries; each branch may use different transit"
     )
@@ -104,6 +105,15 @@ class TripItinerary(BaseModel):
 
 class SplitTripItinerary(TripItinerary):
     days: List[SplitDayPlan]
+
+class SplitPatchDay(BaseModel):
+    day_number: int
+    splits: List[Split] = Field(
+        description="Splits to add to this day; include one or more for requested activity IDs"
+    )
+
+class SplitPatch(BaseModel):
+    days: List[SplitPatchDay]
 
 
 def create_gemini_client() -> genai.Client:
@@ -176,20 +186,40 @@ def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests:
     if not userJson:
         raise ValueError(f"User ID {userID} not found in family JSON.")
 
+    activity_id_set = set(activityIDs)
+    affected_days = []
+    for day in trip.get("days", []):
+        matching_items = [
+            item for item in day.get("timeline", [])
+            if item.get("id") in activity_id_set
+        ]
+        if matching_items:
+            affected_days.append({
+                "day_number": day["day_number"],
+                "date": day.get("date"),
+                "base_city": day.get("base_city"),
+                "day_theme_or_summary": day.get("day_theme_or_summary"),
+                "timeline": day.get("timeline", []),
+                "requested_activity_ids": [
+                    item["id"] for item in matching_items
+                ],
+            })
+    if not affected_days:
+        raise ValueError("None of the activity IDs were found in the trip timeline.")
+
     userJson = json.dumps(userJson)
     familyJSON = json.dumps(familyJSON)
-    trip = json.dumps(trip)
+    affected_days = json.dumps(affected_days, separators=(",", ":"))
 
     client = create_gemini_client()
 
 
     response = client.interactions.create(
         model=MODEL_NAME,
-        tools=[{"type": "google_maps"}],
         input=(
             f"User Preferences: {userJson}\n\n"
             f"Overall Preference: {familyJSON}\n\n"
-            f"Trip: {trip}\n\n"
+            f"Affected Trip Days: {affected_days}\n\n"
             f"Activity IDs to split: {json.dumps(activityIDs)}\n\n"
             f"Request: {request}\n\n"
             f"Specific Requests: {specificRequests}"
@@ -200,13 +230,33 @@ def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests:
         response_format={
             "type": "text",
             "mime_type": "application/json",
-            "schema": SplitTripItinerary.model_json_schema()
+            "schema": SplitPatch.model_json_schema()
         },
     )
     if not response.output_text:
         raise RuntimeError("Gemini returned an empty response.")
 
-    return response.output_text
+    patch = SplitPatch.model_validate_json(response.output_text)
+    patch_by_day = {day.day_number: day for day in patch.days}
+    merged_trip = dict(trip)
+    merged_days = []
+    for day in trip.get("days", []):
+        patch_day = patch_by_day.get(day.get("day_number"))
+        merged_day = dict(day)
+        if patch_day is not None:
+            # The requested source activities are replaced by their branch
+            # activities, so they must not remain on the shared timeline.
+            merged_day["timeline"] = [
+                item for item in day.get("timeline", [])
+                if item.get("id") not in activity_id_set
+            ]
+            merged_day["splits"] = [
+                split.model_dump(exclude_none=True)
+                for split in patch_day.splits
+            ]
+        merged_days.append(merged_day)
+    merged_trip["days"] = merged_days
+    return json.dumps(merged_trip, indent=2)
 
 
 
@@ -214,16 +264,17 @@ if __name__ == "__main__":
     # Load the family JSON data
     with open("family_1.json", "r", encoding="utf-8") as family_file:
         familyJSON = json.load(family_file)
-        # Testing block for initial trip plan generation    
-        start_time = time.perf_counter()
+    """
+    # Testing block for initial trip plan generation    
+    start_time = time.perf_counter()
 
-        trip_plan = generate_trip_plan(familyJSON)
-        
-        elapsed_time = time.perf_counter() - start_time
+    trip_plan = generate_trip_plan(familyJSON)
+    
+    elapsed_time = time.perf_counter() - start_time
 
-        print(f"Response time: {elapsed_time:.2f} seconds")
-        with open("trip.json", "w", encoding="utf-8") as output_file:
-            output_file.write(trip_plan)
+    print(f"Response time: {elapsed_time:.2f} seconds")
+    with open("trip.json", "w", encoding="utf-8") as output_file:
+        output_file.write(trip_plan)
     """
     # Testing block for split trip plan generation
     with open("trip.json", "r", encoding="utf-8") as trip_file:
@@ -231,7 +282,7 @@ if __name__ == "__main__":
 
     userID = "U001"  # Example user ID for testing
     specificRequests = ""
-    activityIDs = ["d2-nezu-yanaka", "d2-ueno-park", "d3-meiji-jingu"]  # Example activity IDs for testing
+    activityIDs = ["t_d2_02", "t_d2_04", "t_d2_08"]  # Example activity IDs for testing
 
     start_time = time.perf_counter() 
 
@@ -241,4 +292,3 @@ if __name__ == "__main__":
     print(f"Response time: {elapsed_time:.2f} seconds")
     with open("split_trip.json", "w", encoding="utf-8") as output_file:
         output_file.write(split_trip_plan)
-    """
