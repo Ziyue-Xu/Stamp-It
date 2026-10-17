@@ -438,7 +438,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
           {plan.subtitle && <p className="plan-subtitle">{plan.subtitle}</p>}
           <p className="plan-days-count">
             {plan.days.length === 1 ? "1 day" : `${plan.days.length} days`}
-            {plan.total ? ` · about ${formatMoney(plan.total.amount, plan.total.currency)} each` : ""}
+            {plan.total ? ` · about ${formatMoney(plan.total.amount, plan.total.currency)} per person` : ""}
           </p>
         </div>
         <div className="plan-header-stamp" aria-hidden="true">

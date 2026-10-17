@@ -1,12 +1,11 @@
-
-.pref-page {
-  --paper: #3a3d5c; /* navy background */
-  --ink: #f6ebcb; /* cream text */
+.plan-page {
+  --paper: #3a3d5c;
+  --ink: #f6ebcb;
   --ink-soft: #d8cdae;
-  --sky: #474c70; /* lighter navy for panels */
+  --sky: #474c70;
   --terracotta: #e4603a;
-  --gold: #edb04c; /* mustard */
-  --teal: #7fa46b; /* sage */
+  --gold: #edb04c;
+  --teal: #7fa46b;
   --pink: #efa3bb;
   --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -17,26 +16,30 @@
   font-family: var(--font-body);
 }
 
-.pref-page .pref {
+.plan-page .plan {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   min-height: 100vh;
   margin: 0 auto;
   padding: 24px;
 }
 
-
-.pref-page .pref-top {
+.plan-page .plan-top {
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-between;
 }
 
-.pref-page .back-btn {
-  flex: none;
+.plan-page .plan-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-page .back-btn {
   width: 44px;
   height: 44px;
   border: 2px solid var(--ink);
@@ -46,264 +49,450 @@
   font-size: 20px;
   cursor: pointer;
 }
-.pref-page .back-btn:hover {
+.plan-page .back-btn:hover {
   background: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
-.pref-page .pref-back-space {
-  flex: none;
-  width: 44px;
-  height: 44px;
-}
-
-.pref-page .pref-progress-wrap {
-  flex: 1;
-}
-
-.pref-page .pref-count {
-  margin-bottom: 6px;
+.plan-page .plan-label {
+  padding: 8px 14px;
+  border: 2px dashed var(--gold);
+  border-radius: 4px;
+  color: var(--gold);
   font-family: var(--font-label);
   font-size: 12px;
   letter-spacing: 3px;
-  color: var(--gold);
 }
 
-
-.pref-page .pref-bar {
-  height: 14px;
-  border: 3px dotted var(--ink);
-  border-radius: 2px;
-  background: transparent;
-  overflow: hidden;
+.plan-page .plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.pref-page .pref-bar-fill {
-  height: 100%;
-  border-radius: 0;
-  background: var(--gold);
-}
-
-
-.pref-page .pref-for {
-  align-self: flex-start;
-  padding: 5px 12px;
-  border-radius: 3px;
-  background: var(--teal);
-  color: var(--paper);
-  font-family: var(--font-label);
-  font-size: 12px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transform: rotate(-1.5deg);
-}
-
-
-.pref-page .pref-body {
-  flex: 1;
-}
-
-
-.pref-page .qicon {
-  width: 84px;
-  height: 84px;
-  margin-bottom: 16px;
-  border: 5px dotted var(--ink);
-  border-radius: 3px;
-  background: var(--sky);
-  background-clip: padding-box;
-  transform: rotate(-3deg);
-}
-.pref-page .qicon svg {
-  width: 52px;
-  height: 52px;
-}
-
-.pref-page .pref-hint {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 5px 12px;
-  border: 2px dashed var(--gold);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--gold);
-  font-family: var(--font-label);
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 1px;
-}
-
-.pref-page .pref h1 {
+.plan-page .plan-header h1 {
   margin: 0;
   font-family: var(--font-heading);
   font-size: 34px;
   font-weight: 900;
   letter-spacing: -0.03em;
-  line-height: 0.98;
+  line-height: 0.95;
+  text-transform: uppercase;
+  word-break: break-word;
+}
+
+.plan-page .plan-days-count {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.plan-page .plan-header-stamp {
+  flex: none;
+}
+.plan-page .plan-header-stamp .stamp {
+  border-width: 6px;
+  padding: 3px;
+}
+
+.plan-page .plan-sample {
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px dashed var(--terracotta);
+  border-radius: 4px;
+  color: var(--terracotta);
+  font-family: var(--font-label);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 1px;
+}
+
+.plan-page .plan-subtitle {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.plan-page .plan-route {
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  padding: 12px 14px;
+  border: 2px solid var(--ink-soft);
+  border-radius: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.plan-page .plan-route::-webkit-scrollbar {
+  display: none;
+}
+.plan-page .plan-route-item {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.plan-page .plan-route-line {
+  margin: 0 14px 4px;
+  color: var(--gold);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+.plan-page .plan-route-line::before {
+  content: "\2192";
+}
+.plan-page .plan-route-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 3px;
+  background: var(--sky);
+  border-bottom: 4px solid var(--gold);
+}
+.plan-page .plan-route-item:nth-child(2) .plan-route-stop {
+  border-bottom-color: var(--pink);
+}
+.plan-page .plan-route-item:nth-child(3) .plan-route-stop {
+  border-bottom-color: var(--teal);
+}
+.plan-page .plan-route-name {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 900;
   text-transform: uppercase;
 }
-
-.pref-page .pref-sub {
-  margin: 8px 0 20px;
+.plan-page .plan-route-days {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 1px;
   color: var(--ink-soft);
-  line-height: 1.45;
 }
 
-
-.pref-page .pref-options {
+.plan-page .plan-blend {
+  padding: 14px 16px;
+  border: 2px solid var(--ink-soft);
+  border-radius: 6px;
+}
+.plan-page .plan-blend-title {
+  margin-bottom: 10px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+.plan-page .plan-blend-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
-.pref-page .pref-options-row {
-  flex-direction: row;
-}
-
-.pref-page .pref-option {
+.plan-page .blend-tag {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 3px;
+  background: var(--sky);
+  border-left: 5px solid var(--gold);
+}
+.plan-page .blend-tag:nth-child(2n) {
+  border-left-color: var(--pink);
+}
+.plan-page .blend-kind {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+.plan-page .blend-detail {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.plan-page .blend-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.plan-page .plan-tabs {
+  display: flex;
+  gap: 10px;
+  margin: 0 -24px;
+  padding: 6px 24px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.plan-page .plan-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-page .plan-tab {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 2px;
-  padding: 16px 20px;
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  background: var(--ink);
-  box-shadow: none;
-  color: var(--paper);
+  min-width: 78px;
+  padding: 10px 12px;
+  border: 4px dotted var(--ink-soft);
+  border-radius: 3px;
+  background: transparent;
+  background-clip: padding-box;
+  color: var(--ink);
   font-family: var(--font-body);
-  text-align: left;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
-.pref-page .pref-option:hover {
+.plan-page .plan-tab:hover {
   transform: translateY(-2px);
 }
 
-.pref-page .pref-options-row .pref-option {
-  flex: 1;
-  align-items: center;
-  text-align: center;
+.plan-page .plan-tab-day {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
 }
 
-
-.pref-page .pref-option-selected {
-  border: 5px dotted var(--ink);
-  background: var(--gold);
-  background-clip: padding-box;
-  color: var(--paper);
-  transform: rotate(-1deg);
-}
-
-.pref-page .pref-option-label {
-  font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-}
-
-.pref-page .pref-option-budget .pref-option-label {
-  font-size: 34px;
-}
-
-.pref-page .pref-option-note {
-  font-size: 14px;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--paper) 75%, transparent);
-}
-
-
-.pref-page .pref-scale {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 20px;
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  background: var(--ink);
-  box-shadow: none;
-  color: var(--paper);
-}
-
-.pref-page .pref-scale-labels {
-  display: flex;
-  justify-content: space-between;
+.plan-page .plan-tab-date {
   font-family: var(--font-heading);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 900;
   text-transform: uppercase;
 }
 
-.pref-page .pref-slider {
-  width: 100%;
-  height: 40px;
-  accent-color: var(--terracotta);
-  cursor: pointer;
+.plan-page .plan-tab-city {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.85;
 }
 
-.pref-page .link-btn.pref-middle {
-  align-self: center;
+.plan-page .plan-tab-selected {
+  border-color: var(--ink);
+  background: var(--gold);
   color: var(--paper);
+  transform: rotate(-2deg);
 }
-.pref-page .link-btn.pref-middle:hover {
-  color: var(--terracotta);
+.plan-page .plan-tab-selected:hover {
+  transform: rotate(-2deg);
 }
 
+.plan-page .plan-day-head {
+  margin-bottom: 16px;
+}
+.plan-page .plan-day-name {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.plan-page .plan-day-city {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.plan-page .plan-day-city-tag {
+  padding: 4px 10px;
+  border: 2px dashed var(--pink);
+  border-radius: 3px;
+  color: var(--pink);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.plan-page .plan-day-total {
+  font-family: var(--font-label);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.plan-page .plan-day-theme {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--gold);
+}
 
-.pref-page .pref-footer {
+.plan-page .plan-stops {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.pref-page .pref-skip {
-  align-self: center;
-}
-
-.pref-page .form-error {
   margin: 0;
-  color: var(--terracotta);
-  font-size: 15px;
-  font-weight: 700;
+  padding: 0;
+  list-style: none;
+}
+.plan-page .plan-stops::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 63px;
+  border-left: 3px dotted var(--ink-soft);
+  opacity: 0.5;
+}
+.plan-page .plan-stop {
+  position: relative;
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+.plan-page .plan-stop-time {
+  flex: none;
+  width: 56px;
+  padding-top: 14px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+.plan-page .plan-stop-end {
+  display: block;
+  font-size: 10px;
+  opacity: 0.8;
 }
 
-.pref-page .link-btn {
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--ink-soft);
-  font-family: var(--font-label);
-  font-size: 14px;
-  letter-spacing: 1px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
+.plan-page .plan-stop-transit .plan-stop-time {
+  padding-top: 6px;
+  font-size: 11px;
 }
-.pref-page .link-btn:hover {
+.plan-page .plan-go {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 10px;
+  border: 2px dashed color-mix(in srgb, var(--ink-soft) 55%, transparent);
+  border-radius: 4px;
+  background: var(--paper);
+}
+.plan-page .plan-mode {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: var(--sky);
+  color: var(--ink);
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.plan-page .plan-go-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.plan-page .plan-go-title {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.plan-page .plan-go-meta {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.plan-page .plan-card {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--ink);
+  border-left-width: 8px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.plan-page .plan-card-activity {
+  border-left-color: var(--teal);
+}
+.plan-page .plan-card-meal {
+  border-left-color: var(--terracotta);
+}
+.plan-page .plan-card-lodging {
+  border-left-color: var(--pink);
+}
+.plan-page .plan-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.plan-page .plan-kind {
+  padding: 5px 10px;
+  border-radius: 3px;
+  background: var(--teal);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 2px;
+}
+.plan-page .plan-kind-meal {
+  background: var(--terracotta);
   color: var(--ink);
 }
-
-
-.pref-page .btn-go {
-  min-height: 56px;
-  margin-top: 0;
-  padding: 0 24px;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  background: var(--gold);
-  color: var(--paper);
+.plan-page .plan-kind-lodging {
+  background: var(--pink);
+}
+.plan-page .plan-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.plan-page .plan-length {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+.plan-page .plan-cost {
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 900;
+}
+.plan-page .plan-card-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
   text-transform: uppercase;
+}
+.plan-page .plan-card-address {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+.plan-page .plan-tips-btn {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 2px dashed color-mix(in srgb, var(--paper) 45%, transparent);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 2px;
   cursor: pointer;
-  transition: transform 0.15s ease;
 }
-.pref-page .btn-go:hover {
-  transform: translateY(-2px);
+.plan-page .plan-tips-btn:hover {
+  background: color-mix(in srgb, var(--paper) 10%, transparent);
 }
-.pref-page .btn-go:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
+.plan-page .plan-tips {
+  margin: 10px 0 0;
+  padding: 10px 0 0 18px;
+  border-top: 2px dashed color-mix(in srgb, var(--paper) 35%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--paper) 85%, transparent);
+}
+.plan-page .plan-tips li + li {
+  margin-top: 6px;
 }
