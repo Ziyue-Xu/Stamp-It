@@ -2,13 +2,13 @@
 
 
 .welcome {
- 
-  --paper: #3a3d5c; /* navy background */
-  --ink: #f6ebcb; /* cream text */
+
+  --paper: #3a3d5c;
+  --ink: #f6ebcb; 
   --ink-soft: #d8cdae;
   --terracotta: #e4603a;
-  --gold: #edb04c; /* mustard */
-  --teal: #7fa46b; /* sage */
+  --gold: #edb04c; 
+  --teal: #7fa46b; 
   --pink: #efa3bb;
   --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -35,7 +35,6 @@
   height: 530px;
 }
 
-
 .welcome-bottom {
   position: absolute;
   left: 24px;
@@ -52,7 +51,7 @@
   line-height: 0.96;
   text-transform: uppercase;
   color: var(--ink);
-  white-space: nowrap; /* keeps "TOGETHER" on ONE line */
+  white-space: nowrap; 
 }
 
 .welcome-tag {
@@ -64,11 +63,12 @@
 }
 
 .welcome-buttons {
-  margin-top: 22px;
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
+
 
 .rise {
   animation: welcome-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -88,7 +88,7 @@
 
 .welcome .btn {
   height: auto;
-  min-height: 52px;
+  min-height: 48px;
   padding: 0 24px;
   border-radius: 6px;
   font-family: var(--font-heading);

@@ -16,8 +16,8 @@ import "./WelcomeScreen.css";
 const DESIGN_W = 390;
 const DESIGN_H = 844;
 
-export default function WelcomeScreen({ onStartTrip, onJoinTrip }) {
-  // ---------- scale the 390x844 design to fit this window ----------
+export default function WelcomeScreen({ onStartTrip, onJoinTrip, onLogin }) {
+
   const [k, setK] = useState(1);
   useEffect(() => {
     const fit = () =>
@@ -52,12 +52,11 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip }) {
         ref={stageRef}
         style={{
           width: DESIGN_W,
-          // stage is at least 780 tall and stretches to fill taller windows
+
           height: `max(780px, calc(100dvh / ${k}))`,
           transform: `scale(${k})`,
           marginLeft: -DESIGN_W / 2,
         }}
-      >
 
         <div className="welcome-collage">
           <Stamp placed color="var(--pink)" x={22} y={26} w={128} h={158} rot={-1} depth={0.5} delay={0.1}>
@@ -83,7 +82,7 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip }) {
           </Stamp>
         </div>
 
-     
+
         <div className="welcome-bottom">
           <h1 className="welcome-title rise" style={{ "--d": "1.2s" }}>
             Travel,
@@ -95,14 +94,18 @@ export default function WelcomeScreen({ onStartTrip, onJoinTrip }) {
           </div>
 
           <div className="welcome-buttons rise" style={{ "--d": "1.5s" }}>
-
+    
             <button type="button" className="btn btn-primary" onClick={onStartTrip}>
               Start a new trip
             </button>
 
-    
+  
             <button type="button" className="btn btn-secondary" onClick={onJoinTrip}>
               Join with a code
+            </button>
+
+            <button type="button" className="btn btn-secondary" onClick={onLogin}>
+              Log in
             </button>
           </div>
         </div>
