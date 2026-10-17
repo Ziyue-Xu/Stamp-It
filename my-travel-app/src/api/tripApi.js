@@ -5,7 +5,8 @@ import {
   countryNameFor,
   destinationIdFor,
 } from "./familyFormat";
-
+import { removeSavedTravelProfile } from "./preferencesApi";
+import { removeSavedPlan } from "./planApi";
 
 const TRIPS_KEY = "travelAppTrips";
 
@@ -17,14 +18,12 @@ function writeTrips(trips) {
   localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
 }
 
-
 function replaceTrip(updatedTrip) {
   const trips = readTrips().map((trip) =>
     trip.tripCode === updatedTrip.tripCode ? updatedTrip : trip
   );
   writeTrips(trips);
 }
-
 
 async function readErrorMessage(response, fallback) {
   try {
@@ -34,7 +33,6 @@ async function readErrorMessage(response, fallback) {
     return fallback;
   }
 }
-
 
 function tripFromBackend(data) {
   const start = fromBackendDateTime(data.startDate);
@@ -57,7 +55,6 @@ function tripFromBackend(data) {
   };
 }
 
-
 function makeFakeCode() {
   let code = "";
   for (let i = 0; i < 4; i++) {
@@ -76,7 +73,6 @@ export async function createTrip({
   departureCity = "",
 }) {
   if (USE_REAL_BACKEND) {
-
     const response = await fetch(`${API_BASE_URL}/families`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +87,6 @@ export async function createTrip({
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "The server could not create the trip."));
     }
-
     const data = await response.json();
     return {
       tripCode: data.family_code,
@@ -106,7 +101,6 @@ export async function createTrip({
       members: [],
     };
   }
-
 
   const trip = {
     tripCode: makeFakeCode(),
@@ -124,10 +118,8 @@ export async function createTrip({
   return trip;
 }
 
-
 export async function findTripByCode(code) {
   if (USE_REAL_BACKEND) {
-
     const response = await fetch(`${API_BASE_URL}/families/lookup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,17 +130,14 @@ export async function findTripByCode(code) {
         await readErrorMessage(response, "That family code was not found. Check it and try again.")
       );
     }
-
     const data = await response.json();
     return tripFromBackend({ ...data, family_code: code });
   }
-
 
   const found = readTrips().find((trip) => trip.tripCode === code);
   if (found) return found;
   throw new Error("That family code was not found. Check it and try again.");
 }
-
 
 export async function addMemberToTrip(trip, member) {
   const alreadyIn = trip.members.some((m) => m.userId === member.userId);
@@ -157,14 +146,13 @@ export async function addMemberToTrip(trip, member) {
     : { ...trip, members: [...trip.members, member] };
 
   if (!USE_REAL_BACKEND) {
-    replaceTrip(updatedTrip); // keep the fake list up to date
+    replaceTrip(updatedTrip);
   }
   return updatedTrip;
 }
 
 export async function joinTrip(trip, member) {
   if (USE_REAL_BACKEND) {
-
     const response = await fetch(`${API_BASE_URL}/families/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -174,31 +162,25 @@ export async function joinTrip(trip, member) {
       throw new Error(await readErrorMessage(response, "Could not join the trip."));
     }
   }
-
   return addMemberToTrip(trip, member);
 }
 
 export async function getMyTrips(userId) {
   if (USE_REAL_BACKEND) {
-
     const response = await fetch(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/families`
     );
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "Could not load your trips."));
     }
-
     const list = await response.json();
     return list.map(tripFromBackend);
   }
-
 
   return readTrips().filter((trip) =>
     trip.members.some((member) => member.userId === userId)
   );
 }
-
-
 
 export async function updateTrip(trip, changes, userId) {
   if (getCreatorId(trip) !== userId) {
@@ -217,7 +199,6 @@ export async function updateTrip(trip, changes, userId) {
   };
 
   if (USE_REAL_BACKEND) {
-
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(trip.familyId)}`,
       {
@@ -239,7 +220,6 @@ export async function updateTrip(trip, changes, userId) {
     return updatedTrip;
   }
 
-
   const saved = readTrips().find((t) => t.tripCode === trip.tripCode);
   if (!saved || getCreatorId(saved) !== userId) {
     throw new Error("Only the trip creator can change the trip details.");
@@ -248,6 +228,66 @@ export async function updateTrip(trip, changes, userId) {
   return updatedTrip;
 }
 
+export async function deleteTrip(trip, userId) {
+  if (getCreatorId(trip) !== userId) {
+    throw new Error("Only the trip creator can delete the trip.");
+  }
+
+  if (USE_REAL_BACKEND) {
+    const response = await fetch(
+      `${API_BASE_URL}/families/${encodeURIComponent(trip.familyId)}`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: userId }),
+      }
+    );
+    if (response.status === 403) {
+      throw new Error("Only the trip creator can delete the trip.");
+    }
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, "Could not delete the trip."));
+    }
+    return;
+  }
+
+  const saved = readTrips().find((t) => t.tripCode === trip.tripCode);
+  if (!saved || getCreatorId(saved) !== userId) {
+    throw new Error("Only the trip creator can delete the trip.");
+  }
+  saved.members.forEach((member) => removeSavedTravelProfile(member.userId, saved.familyId));
+  removeSavedPlan(saved.familyId);
+  writeTrips(readTrips().filter((t) => t.tripCode !== trip.tripCode));
+}
+
+export async function leaveTrip(trip, userId) {
+  if (getCreatorId(trip) === userId) {
+    throw new Error("The trip creator can't leave. Delete the trip instead.");
+  }
+
+  if (USE_REAL_BACKEND) {
+    const response = await fetch(
+      `${API_BASE_URL}/families/${encodeURIComponent(trip.familyId)}` +
+        `/members/${encodeURIComponent(userId)}`,
+      { method: "DELETE" }
+    );
+    if (response.status === 403) {
+      throw new Error("The trip creator can't leave. Delete the trip instead.");
+    }
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, "Could not leave the trip."));
+    }
+    return;
+  }
+
+  const saved = readTrips().find((t) => t.tripCode === trip.tripCode);
+  if (!saved) return;
+  if (getCreatorId(saved) === userId) {
+    throw new Error("The trip creator can't leave. Delete the trip instead.");
+  }
+  removeSavedTravelProfile(userId, saved.familyId);
+  replaceTrip({ ...saved, members: saved.members.filter((m) => m.userId !== userId) });
+}
 
 export async function refreshMemberInTrips(member) {
   if (USE_REAL_BACKEND) return;
@@ -262,7 +302,6 @@ export async function refreshMemberInTrips(member) {
   }));
   writeTrips(trips);
 }
-
 
 export function getCreatorId(trip) {
   if (trip.creatorId) return trip.creatorId;

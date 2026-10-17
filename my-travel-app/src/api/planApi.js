@@ -1,15 +1,10 @@
-
-
 import { USE_REAL_BACKEND, API_BASE_URL } from "./config";
 import { planFromBackend } from "./planFormat";
 import sampleTrip from "../data/sampleTrip.json";
 
-
 const USE_SAMPLE_PLAN = true;
 
-
 const SAVED_PLAN_KEY = "travelAppSavedPlanV2_";
-
 
 function membersOf(trip) {
   return trip && Array.isArray(trip.members) ? trip.members : [];
@@ -19,7 +14,7 @@ function writeSavedPlan(familyId, plan) {
   try {
     localStorage.setItem(SAVED_PLAN_KEY + familyId, JSON.stringify(plan));
   } catch (problem) {
-    // storage blocked: the plan still shows, it just won't be remembered
+    return;
   }
 }
 
@@ -28,14 +23,12 @@ function readSavedPlan(familyId) {
     const text = localStorage.getItem(SAVED_PLAN_KEY + familyId);
     return text ? JSON.parse(text) : null;
   } catch (problem) {
-    return null; // storage blocked or the text was damaged: ignore it
+    return null;
   }
 }
 
-
 export async function getExistingPlan(familyId, trip) {
   if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
-
     try {
       const response = await fetch(
         `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`
@@ -47,14 +40,11 @@ export async function getExistingPlan(familyId, trip) {
       return { plan: null };
     }
   }
-  
   return { plan: readSavedPlan(familyId) };
 }
 
-
 export async function generateGroupPlan(familyId, requestedByUserId, trip) {
   if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
-
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`,
       {
@@ -73,16 +63,13 @@ export async function generateGroupPlan(familyId, requestedByUserId, trip) {
     return { plan: planFromBackend(data, membersOf(trip)) };
   }
 
-
   const fresh = { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true };
   writeSavedPlan(familyId, fresh);
   return { plan: fresh };
 }
 
-
 export async function savePlan(familyId, userId, plan) {
   if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
-
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`,
       {
@@ -100,7 +87,6 @@ export async function savePlan(familyId, userId, plan) {
     return "server";
   }
 
-
   try {
     localStorage.setItem(SAVED_PLAN_KEY + familyId, JSON.stringify(plan));
   } catch (problem) {
@@ -109,9 +95,17 @@ export async function savePlan(familyId, userId, plan) {
   return "device";
 }
 
-
 export async function resetPlan(familyId, trip) {
   const fresh = { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true };
-  writeSavedPlan(familyId, fresh); // replaces the edited copy with the original
+  writeSavedPlan(familyId, fresh);
   return { plan: fresh };
+}
+
+export function removeSavedPlan(familyId) {
+  if (USE_REAL_BACKEND) return;
+  try {
+    localStorage.removeItem(SAVED_PLAN_KEY + familyId);
+  } catch (problem) {
+    return;
+  }
 }

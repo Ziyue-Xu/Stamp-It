@@ -1,12 +1,11 @@
-
 .trip-page {
-  --paper: #3a3d5c; /* navy background */
-  --ink: #f6ebcb; /* cream text */
+  --paper: #3a3d5c;
+  --ink: #f6ebcb;
   --ink-soft: #d8cdae;
-  --sky: #474c70; /* lighter navy for panels */
+  --sky: #474c70;
   --terracotta: #e4603a;
-  --gold: #edb04c; /* mustard */
-  --teal: #7fa46b; /* sage */
+  --gold: #edb04c;
+  --teal: #7fa46b;
   --pink: #efa3bb;
   --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -27,7 +26,6 @@
   margin: 0 auto;
   padding: 24px;
 }
-
 
 .trip-page .tp-top {
   display: flex;
@@ -58,7 +56,6 @@
   font-size: 14px;
   letter-spacing: 3px;
 }
-
 
 .trip-page .tp-header {
   display: flex;
@@ -116,7 +113,6 @@
   text-transform: uppercase;
 }
 
-
 .trip-page .tp-ticket {
   display: flex;
   border: 7px dotted var(--gold);
@@ -156,7 +152,6 @@
   color: var(--ink-soft);
 }
 
-
 .trip-page .tp-edit {
   min-height: 48px;
   padding: 0 20px;
@@ -174,7 +169,6 @@
   background: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
-
 .trip-page .qicon {
   width: 56px;
   height: 56px;
@@ -188,7 +182,6 @@
   width: 34px;
   height: 34px;
 }
-
 
 .trip-page .tp-prefs {
   display: flex;
@@ -233,7 +226,6 @@
   font-weight: 700;
   color: var(--paper);
 }
-
 
 .trip-page .tp-section h2 {
   margin: 0 0 12px;
@@ -304,7 +296,6 @@
   color: var(--paper);
 }
 
-
 .trip-page .tp-plan {
   display: flex;
   flex-direction: column;
@@ -359,7 +350,6 @@
   transform: none;
 }
 
-
 .trip-page .form-error {
   margin: 0;
   color: var(--terracotta);
@@ -372,4 +362,26 @@
   color: var(--teal);
   font-size: 15px;
   font-weight: 700;
+}
+
+.trip-page .tp-danger {
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 0 20px;
+  border: 2px solid var(--terracotta);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--terracotta);
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.trip-page .tp-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--terracotta) 14%, transparent);
+}
+.trip-page .tp-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
