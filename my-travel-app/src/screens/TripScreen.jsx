@@ -10,6 +10,7 @@ import { findDestination } from "../data/destinations";
 import { findAvatar } from "../data/avatars";
 import AvatarArt from "../components/AvatarArt";
 import ReloadButton from "../components/ReloadButton";
+import ItineraryIcon from "../components/ItineraryIcon";
 import {
   formatDateRange,
   describeTripTiming,
@@ -192,7 +193,7 @@ function TripScreen({
 
         <section className="tp-plan">
           <div className="tp-plan-top">
-            <QuestionIcon field="activityFocus" small />
+            <ItineraryIcon />
             <div>
               <div className="tp-plan-title">Group itinerary</div>
               <div className="tp-plan-sub">

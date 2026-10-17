@@ -1,0 +1,13 @@
+.itin-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+
+.itin-icon svg {
+  width: 64px;
+  height: 64px;
+}
