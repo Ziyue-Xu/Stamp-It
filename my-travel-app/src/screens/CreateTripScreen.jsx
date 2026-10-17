@@ -10,6 +10,8 @@ import {
 import { todayString } from "../data/dates";
 import "./CreateTripScreen.css";
 import Stamp from "../components/Stamp";
+import CityPicker from "../components/CityPicker";
+import { countryCodeFor } from "../data/countryCodes";
 import {
   TajMahalArt,
   LibertyArt,
@@ -21,7 +23,7 @@ import { DESTINATION_STAMPS } from "../components/destinationStamps";
 
 
 function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave, onBack }) {
-  // Are we EDITING an existing trip? (true when initialTrip was passed in)
+
   const editing = Boolean(initialTrip);
 
 
@@ -32,14 +34,23 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   const [departureTime, setDepartureTime] = useState(
     editing ? initialTrip.departureTime || "" : ""
   );
+  const [arrivalCity, setArrivalCity] = useState(editing ? initialTrip.arrivalCity || "" : "");
+  const [departureCity, setDepartureCity] = useState(
+    editing ? initialTrip.departureCity || "" : ""
+  );
+
+  const [arrivalCityOk, setArrivalCityOk] = useState(true);
+  const [departureCityOk, setDepartureCityOk] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // The matches for what's typed. Runs right here, no backend needed.
+  // The matches for what's typed
   const results = searchDestinations(query);
   const popular = POPULAR_IDS.map(findDestination);
   const selected = findDestination(selectedId);
-
+  // The picked country's 2-letter code (like "MX") until one is picked.
+  // The city boxes use it to only show cities inside that country.
+  const countryCode = countryCodeFor(selectedId);
 
   const today = todayString();
   const keepsOldStart = editing && startDate === initialTrip.startDate;
@@ -61,17 +72,26 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     startDate !== initialTrip.startDate ||
     endDate !== initialTrip.endDate ||
     arrivalTime !== (initialTrip.arrivalTime || "") ||
-    departureTime !== (initialTrip.departureTime || "");
+    departureTime !== (initialTrip.departureTime || "") ||
+    arrivalCity.trim() !== (initialTrip.arrivalCity || "") ||
+    departureCity.trim() !== (initialTrip.departureCity || "");
 
-  const canCreate = Boolean(selectedId) && datesOk && timesOk && changed;
+  // A typed city that was never picked from the list is not OK yet.
+  const citiesOk = arrivalCityOk && departureCityOk;
+
+  const canCreate = Boolean(selectedId) && datesOk && timesOk && citiesOk && changed;
 
 
   function handlePick(id) {
+    if (id !== selectedId) {
+      setArrivalCity("");
+      setDepartureCity("");
+    }
     onSelect(id);
     setQuery("");
   }
 
-  // Pressing Enter in the search box picks the first result.
+
   function handleSearchKeyDown(event) {
     if (event.key === "Enter" && results.length > 0) {
       handlePick(results[0].id);
@@ -92,9 +112,16 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     setBusy(true);
     setError("");
     try {
-      // >>>>> DATA LEAVES HERE (the trip's dates and times go out)
+    
       const send = editing ? onSave : onCreate;
-      await send({ startDate, endDate, arrivalTime, departureTime });
+      await send({
+        startDate,
+        endDate,
+        arrivalTime,
+        departureTime,
+        arrivalCity: arrivalCity.trim(),
+        departureCity: departureCity.trim(),
+      });
     } catch (problem) {
       setError(problem.message);
       setBusy(false);
@@ -104,7 +131,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   return (
     <div className="create-page">
     <main className="create">
-      {/* TOP ROW: back arrow (left) + three little decoration stamps (right) */}
+   
       <div className="create-top">
 
         <button className="back-btn" onClick={onBack} aria-label="Go back">
@@ -235,6 +262,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
         </div>
       </div>
 
+
       <div className="date-row">
         <div className="date-field">
           <label className="field-label" htmlFor="arrival-time">
@@ -267,12 +295,44 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
           : "Required. When you land on the first day, and when you head home on the last."}
       </p>
 
-      {/* If saving failed, say why (red). */}
+ 
+      <div className="date-row">
+        <CityPicker
+          id="arrival-city"
+          label="Arrival city"
+          placeholder={selected ? `City in ${selected.name}` : "e.g. Paris"}
+          countryCode={countryCode}
+          countryName={selected ? selected.name : ""}
+          value={arrivalCity}
+          onChange={setArrivalCity}
+          onValidChange={setArrivalCityOk}
+        />
+        <CityPicker
+          id="departure-city"
+          label="Departure city"
+          placeholder={selected ? `City in ${selected.name}` : "e.g. Nice"}
+          countryCode={countryCode}
+          countryName={selected ? selected.name : ""}
+          value={departureCity}
+          onChange={setDepartureCity}
+          onValidChange={setDepartureCityOk}
+        />
+      </div>
+      <p className="time-hint">
+        {!selected
+          ? "Optional. Pick your destination first, then you can add the cities you fly into and out of."
+          : citiesOk
+          ? `Optional. Already booked your tickets? Add the city you fly into and the city you fly home from, in ${selected.name}.`
+          : "Tap a city from the list so we know it's real. Or clear the box to skip it."}
+      </p>
+
+
       {error && (
         <p className="time-hint" style={{ color: "var(--terracotta)", fontWeight: 700 }}>
           {error}
         </p>
       )}
+
 
       <motion.button
         className="btn-go"

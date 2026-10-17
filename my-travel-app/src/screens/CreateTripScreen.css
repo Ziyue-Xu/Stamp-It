@@ -17,7 +17,7 @@
   font-family: var(--font-body);
 }
 
-/* the column in the middle (same width as before) */
+
 .create {
   display: flex;
   flex-direction: column;
@@ -29,7 +29,7 @@
   padding: 24px;
 }
 
-/* ---------- top row: back arrow on the left, 3 little stamps on the right ---------- */
+
 .create-top {
   display: flex;
   align-items: flex-start;
@@ -223,6 +223,7 @@
 
 .date-row {
   display: flex;
+  align-items: flex-end; 
   gap: 12px;
   margin-top: 4px;
 }
@@ -244,6 +245,70 @@
   height: 52px;
   padding: 0 12px;
   font-size: 16px;
+}
+
+
+.city-picker {
+  position: relative; 
+}
+.city-picker .date-input::placeholder {
+  color: rgba(58, 61, 92, 0.5);
+}
+/* locked until a country is picked */
+.city-picker .date-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.city-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  background: var(--sky);
+  overflow: hidden;
+}
+
+.city-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.city-list li:last-child .city-option {
+  border-bottom: 0;
+}
+.city-option:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.city-option-name {
+  font-size: 15px;
+  font-weight: 800;
+}
+.city-option-detail {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.city-note {
+  padding: 10px 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 

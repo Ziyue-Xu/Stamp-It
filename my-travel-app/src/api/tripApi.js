@@ -1,5 +1,3 @@
-
-
 import { USE_REAL_BACKEND, API_BASE_URL } from "./config";
 import {
   toBackendDateTime,
@@ -10,7 +8,6 @@ import {
 
 
 const TRIPS_KEY = "travelAppTrips";
-
 
 function readTrips() {
   return JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
@@ -38,6 +35,7 @@ async function readErrorMessage(response, fallback) {
   }
 }
 
+
 function tripFromBackend(data) {
   const start = fromBackendDateTime(data.startDate);
   const end = fromBackendDateTime(data.endDate);
@@ -49,6 +47,8 @@ function tripFromBackend(data) {
     endDate: end.date,
     arrivalTime: start.time,
     departureTime: end.time,
+    arrivalCity: data.arrivalCity || "",
+    departureCity: data.departureCity || "",
     members: (data.users || []).map((user) => ({
       userId: user.userProfile.userId,
       name: user.userProfile.name,
@@ -56,7 +56,6 @@ function tripFromBackend(data) {
     })),
   };
 }
-
 
 
 function makeFakeCode() {
@@ -67,13 +66,14 @@ function makeFakeCode() {
   return code;
 }
 
-
 export async function createTrip({
   destinationId,
   startDate,
   endDate,
   arrivalTime = "",
   departureTime = "",
+  arrivalCity = "",
+  departureCity = "",
 }) {
   if (USE_REAL_BACKEND) {
 
@@ -84,13 +84,14 @@ export async function createTrip({
         country: countryNameFor(destinationId),
         startDate: toBackendDateTime(startDate, arrivalTime),
         endDate: toBackendDateTime(endDate, departureTime),
+        arrivalCity: arrivalCity,
+        departureCity: departureCity,
       }),
     });
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "The server could not create the trip."));
     }
-    // The backend answers with, for example:
-    //   { "family_code": "4821" }
+
     const data = await response.json();
     return {
       tripCode: data.family_code,
@@ -100,6 +101,8 @@ export async function createTrip({
       endDate: endDate,
       arrivalTime: arrivalTime,
       departureTime: departureTime,
+      arrivalCity: arrivalCity,
+      departureCity: departureCity,
       members: [],
     };
   }
@@ -113,6 +116,8 @@ export async function createTrip({
     endDate: endDate,
     arrivalTime: arrivalTime,
     departureTime: departureTime,
+    arrivalCity: arrivalCity,
+    departureCity: departureCity,
     members: [],
   };
   writeTrips([...readTrips(), trip]);
@@ -122,7 +127,7 @@ export async function createTrip({
 
 export async function findTripByCode(code) {
   if (USE_REAL_BACKEND) {
-    // ===== REAL BRANCH =====
+
     const response = await fetch(`${API_BASE_URL}/families/lookup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -137,6 +142,7 @@ export async function findTripByCode(code) {
     const data = await response.json();
     return tripFromBackend({ ...data, family_code: code });
   }
+
 
   const found = readTrips().find((trip) => trip.tripCode === code);
   if (found) return found;
@@ -155,18 +161,10 @@ export async function addMemberToTrip(trip, member) {
   }
   return updatedTrip;
 }
-// ------------------------------------------------------------------
-// joinTrip(trip, member)
-// WHEN IT'S CALLED: when someone who is ALREADY SIGNED IN creates a
-//                   second trip or joins one (no sign-up needed).
-// SENDS (real):     { family_code: "4821", userId: "..." }
-// RETURNS:          the trip with this member added.
-// NOTE FOR THE BACKEND: this should be safe to call twice for the same
-//       person (joining a trip you're already in should not break).
-// ------------------------------------------------------------------
+
 export async function joinTrip(trip, member) {
   if (USE_REAL_BACKEND) {
-    // ===== REAL BRANCH =====
+
     const response = await fetch(`${API_BASE_URL}/families/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -176,22 +174,13 @@ export async function joinTrip(trip, member) {
       throw new Error(await readErrorMessage(response, "Could not join the trip."));
     }
   }
-  // Fake mode and real mode both update our local copy of the trip.
+
   return addMemberToTrip(trip, member);
 }
-// ------------------------------------------------------------------
-// getMyTrips(userId)
-// WHEN IT'S CALLED: whenever the dashboard is about to show.
-// SENDS (real):     the userId in the web address.
-// RETURNS:          a list of trips this person is in.
-//
-// NOTE: the backend has no avatar field, so members coming from the
-// real backend won't have an avatar. The dashboard handles that by
-// falling back to a default color.
-// ------------------------------------------------------------------
+
 export async function getMyTrips(userId) {
   if (USE_REAL_BACKEND) {
-    // ===== REAL BRANCH =====
+
     const response = await fetch(
       `${API_BASE_URL}/users/${encodeURIComponent(userId)}/families`
     );
@@ -209,6 +198,8 @@ export async function getMyTrips(userId) {
   );
 }
 
+
+
 export async function updateTrip(trip, changes, userId) {
   if (getCreatorId(trip) !== userId) {
     throw new Error("Only the trip creator can change the trip details.");
@@ -221,10 +212,12 @@ export async function updateTrip(trip, changes, userId) {
     endDate: changes.endDate,
     arrivalTime: changes.arrivalTime,
     departureTime: changes.departureTime,
+    arrivalCity: changes.arrivalCity || "",
+    departureCity: changes.departureCity || "",
   };
 
   if (USE_REAL_BACKEND) {
-    // ===== REAL BRANCH =====
+
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(trip.familyId)}`,
       {
@@ -235,6 +228,8 @@ export async function updateTrip(trip, changes, userId) {
           country: countryNameFor(changes.destinationId),
           startDate: toBackendDateTime(changes.startDate, changes.arrivalTime),
           endDate: toBackendDateTime(changes.endDate, changes.departureTime),
+          arrivalCity: changes.arrivalCity || "",
+          departureCity: changes.departureCity || "",
         }),
       }
     );
@@ -244,7 +239,7 @@ export async function updateTrip(trip, changes, userId) {
     return updatedTrip;
   }
 
-  // ===== FAKE BRANCH: check against the saved copy, then save =====
+
   const saved = readTrips().find((t) => t.tripCode === trip.tripCode);
   if (!saved || getCreatorId(saved) !== userId) {
     throw new Error("Only the trip creator can change the trip details.");
@@ -252,6 +247,7 @@ export async function updateTrip(trip, changes, userId) {
   replaceTrip(updatedTrip);
   return updatedTrip;
 }
+
 
 export async function refreshMemberInTrips(member) {
   if (USE_REAL_BACKEND) return;
@@ -266,6 +262,7 @@ export async function refreshMemberInTrips(member) {
   }));
   writeTrips(trips);
 }
+
 
 export function getCreatorId(trip) {
   if (trip.creatorId) return trip.creatorId;
