@@ -64,7 +64,6 @@ class Split(BaseModel):
     id: str = Field(description="Unique identifier for the split")
     start_time: str = Field(description="24-hour local time when the group separates, e.g., '14:00'")
     end_time: str = Field(description="24-hour local time when the group begins to reunite, e.g., '16:30'")
-    reason: str = Field(description="Why the group is splitting")
     branches: List[SplitBranch] = Field(
         description="Parallel branch itineraries; each branch may use different transit"
     )
@@ -87,6 +86,11 @@ class DayPlan(BaseModel):
         )
     )
 
+class SplitDayPlan(DayPlan):
+    splits: List[Split] = Field(
+        description="Splits for this day; use an empty list when no requested activity is split"
+    )
+
 class TripItinerary(BaseModel):
     trip_title: str
     start_date: str = Field(description="YYYY-MM-DD")
@@ -97,6 +101,9 @@ class TripItinerary(BaseModel):
         description="Important warnings or unresolved preference conflicts"
     )
     days: List[DayPlan]
+
+class SplitTripItinerary(TripItinerary):
+    days: List[SplitDayPlan]
 
 
 def create_gemini_client() -> genai.Client:
@@ -179,14 +186,21 @@ def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests:
     response = client.interactions.create(
         model=MODEL_NAME,
         tools=[{"type": "google_maps"}],
-        input=f"User Preferences: {userJson} \n\n Overall Preference: {familyJSON} \n\n Trip: {trip} \n\n Request: {request} \n\n Specific Requests: {specificRequests}",
+        input=(
+            f"User Preferences: {userJson}\n\n"
+            f"Overall Preference: {familyJSON}\n\n"
+            f"Trip: {trip}\n\n"
+            f"Activity IDs to split: {json.dumps(activityIDs)}\n\n"
+            f"Request: {request}\n\n"
+            f"Specific Requests: {specificRequests}"
+        ),
         generation_config={
             "thinking_level": "low"
         },
         response_format={
             "type": "text",
             "mime_type": "application/json",
-            "schema": TripItinerary.model_json_schema()
+            "schema": SplitTripItinerary.model_json_schema()
         },
     )
     if not response.output_text:
@@ -200,25 +214,31 @@ if __name__ == "__main__":
     # Load the family JSON data
     with open("family_1.json", "r", encoding="utf-8") as family_file:
         familyJSON = json.load(family_file)
+    """
+        # Testing block for initial trip plan generation    
+        start_time = time.perf_counter()
 
-    # Testing block for initial trip plan generation    
-    start_time = time.perf_counter()
+        trip_plan = generate_trip_plan(familyJSON)
+        
+        elapsed_time = time.perf_counter() - start_time
 
-    trip_plan = generate_trip_plan(familyJSON)
-    
-    elapsed_time = time.perf_counter() - start_time
-
-    print(f"Response time: {elapsed_time:.2f} seconds")
-    with open("trip.json", "w", encoding="utf-8") as output_file:
-        output_file.write(trip_plan)
-
+        print(f"Response time: {elapsed_time:.2f} seconds")
+        with open("trip.json", "w", encoding="utf-8") as output_file:
+            output_file.write(trip_plan)
+    """
     # Testing block for split trip plan generation
     with open("trip.json", "r", encoding="utf-8") as trip_file:
         trip_plan = json.load(trip_file)
 
     userID = "U001"  # Example user ID for testing
-    specificRequests = "Please ensure that the morning routine is early for all users."
+    specificRequests = ""
     activityIDs = ["d2-nezu-yanaka", "d2-ueno-park", "d3-meiji-jingu"]  # Example activity IDs for testing
+
+    start_time = time.perf_counter() 
+
     split_trip_plan = split_trip_plan(familyJSON, userID, trip_plan, specificRequests, activityIDs)
+
+    elapsed_time = time.perf_counter() - start_time
+    print(f"Response time: {elapsed_time:.2f} seconds")
     with open("split_trip.json", "w", encoding="utf-8") as output_file:
         output_file.write(split_trip_plan)
