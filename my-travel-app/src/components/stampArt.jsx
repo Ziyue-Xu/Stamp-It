@@ -15,7 +15,7 @@ const MINT = "#8FBFB4"; // soft sea-glass green
 export function TajMahalArt() {
   return (
     <svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="100" height="130" fill={PINK} />
+      <rect width="100" height="130" fill={ORANGE} />
       <circle cx="82" cy="20" r="7" fill={CREAM} />
       <g stroke={NAVY} strokeWidth="1.6" strokeLinejoin="round" fill={CREAM}>
         {/* the long platform */}

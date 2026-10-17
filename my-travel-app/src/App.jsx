@@ -1,36 +1,33 @@
 import { useState } from "react";
-import CreateTripScreen from "./screens/CreateTripScreen";
+import SignUpScreen from "./screens/SignUpScreen";
 
 function App() {
-  const [destinationId, setDestinationId] = useState(null);
-  const [sent, setSent] = useState("(nothing sent yet)");
+  const [note, setNote] = useState("(finish sign-up to see the result)");
 
   return (
     <>
-      <CreateTripScreen
-        selectedId={destinationId}
-        onSelect={setDestinationId}
-        onCreate={async (data) => {
-          setSent(JSON.stringify({ destinationId, ...data }, null, 2));
-        }}
-        onBack={() => setSent("onBack() was called")}
+      <SignUpScreen
+        familyCode="4821"
+        onSave={(profile) => setNote("onSave() called with: " + JSON.stringify(profile))}
+        onBack={() => setNote("onBack() was called")}
       />
       {/* Testing note only. It is not part of the screen. */}
-      <pre
+      <div
         style={{
           position: "fixed",
           top: 8,
           right: 8,
-          margin: 0,
+          maxWidth: 320,
           padding: "6px 10px",
           background: "#fff",
           color: "#000",
           fontSize: 12,
+          fontFamily: "system-ui",
           zIndex: 99,
         }}
       >
-        {sent}
-      </pre>
+        {note}
+      </div>
     </>
   );
 }

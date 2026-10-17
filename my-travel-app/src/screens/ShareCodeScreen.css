@@ -1,0 +1,241 @@
+
+.share-page {
+  --paper: #3a3d5c; /* navy background */
+  --ink: #f6ebcb; /* cream text */
+  --ink-soft: #d8cdae;
+  --sky: #474c70; /* lighter navy for panels */
+  --terracotta: #e4603a;
+  --gold: #edb04c; /* mustard */
+  --teal: #7fa46b; /* sage */
+  --pink: #efa3bb;
+  --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-label: "Special Elite", "Courier New", monospace;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 32px 24px 24px;
+}
+
+
+.share-chip {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 2px dashed var(--gold);
+  border-radius: 4px;
+  color: var(--gold);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+
+.share h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.share-sub {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.share-dates {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 2px solid var(--ink-soft);
+  border-radius: 4px;
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+
+.ticket {
+  border: 7px dotted var(--gold);
+  border-radius: 2px;
+  background: var(--sky);
+  background-clip: padding-box;
+  overflow: hidden;
+  transform: rotate(-1deg);
+}
+
+
+.ticket-top {
+  padding: 20px 18px 18px;
+  background: var(--gold);
+  color: var(--paper);
+}
+
+.ticket-label {
+  margin-bottom: 14px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+
+.code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.code-tile {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 78px;
+  border: 2px solid var(--paper);
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-heading);
+  font-size: 40px;
+  font-weight: 900;
+}
+
+
+.ticket-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 18px;
+}
+
+.ticket-leg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ticket-leg-label {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+
+.ticket-leg-day {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ticket-leg-time {
+  font-family: var(--font-label);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+}
+
+.ticket-leg-arrow {
+  font-size: 26px;
+  color: var(--gold);
+}
+
+.ticket-tear {
+  height: 0;
+  margin: 0 14px;
+  border-top: 3px dashed var(--ink-soft);
+}
+
+
+.ticket-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+
+.avatar-stack {
+  display: flex;
+}
+
+
+.avatar-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-right: -8px;
+  border: 3px solid var(--sky);
+  border-radius: 4px;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.ticket-count {
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+}
+
+
+.share-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.share-page .btn-outline {
+  flex: 1;
+  min-height: 52px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.share-page .btn-outline:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+
+.share-page .btn-go {
+  min-height: 56px;
+  margin-top: auto;
+  padding: 0 24px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--gold);
+  color: var(--paper);
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.share-page .btn-go:hover {
+  transform: translateY(-2px);
+}

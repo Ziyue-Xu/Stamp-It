@@ -1,0 +1,48 @@
+.code-input-big {
+  height: 72px;
+  border: 2px solid var(--ink);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 16px;
+  text-align: center;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--terracotta);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.form-note {
+  margin: 0;
+  color: var(--teal);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.link-btn {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.test-note {
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--gold-soft);
+  font-size: 14px;
+  font-weight: 700;
+}

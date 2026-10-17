@@ -1,0 +1,149 @@
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.back-btn {
+  align-self: flex-start;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.profile h1 {
+  margin: 8px 0 0;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.profile-sub {
+  margin: 0 0 4px;
+  color: var(--ink-soft);
+}
+
+
+.pass {
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(31, 42, 90, 0.12);
+  overflow: hidden;
+}
+
+.pass-label {
+  padding: 12px 20px;
+  background: var(--sky);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.pass-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.pass-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.pass-name {
+  font-size: 24px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.pass-stripe {
+  height: 10px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--terracotta) 0 20px,
+    var(--gold) 20px 40px,
+    var(--teal) 40px 60px,
+    var(--pink) 60px 80px
+  );
+}
+
+
+.field-label {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.name-input {
+  height: 56px;
+  padding: 0 18px;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.swatch-row {
+  display: flex;
+  gap: 14px;
+}
+
+.swatch {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--paper);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.swatch-selected {
+  outline: 3px solid var(--ink);
+}
+
+.btn-go {
+  height: 58px;
+  margin-top: auto;
+  border: 0;
+  border-radius: 29px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-go:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (min-width: 900px) {
+  .profile {
+    justify-content: center;
+  }
+  .btn-go {
+    margin-top: 12px;
+  }
+}
