@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { findDestination } from "../data/destinations";
@@ -9,17 +8,19 @@ import "./ShareCodeScreen.css";
 import { formatDateRange, formatDay, formatTime } from "../data/dates";
 
 function ShareCodeScreen({ trip, onContinue }) {
-
+  
+  // (so the button can say "Copied!").
   const [copied, setCopied] = useState(false);
 
   const destination = findDestination(trip.destinationId);
   const destinationName = destination ? destination.name : "your";
 
-  // Split "7K2Q" into ["7", "K", "2", "Q"] so each gets its own tile.
+  // Split "7K2Q" so each gets its own tile.
   const letters = trip.tripCode.split("");
 
-  // Only some devices (mostly phones) can open a share sheet.
+
   const canShare = typeof navigator.share === "function";
+
 
   async function handleCopyClick() {
     try {
@@ -54,10 +55,10 @@ function ShareCodeScreen({ trip, onContinue }) {
         </div>
       )}
       <p className="share-sub">
-        Send this code to your family. They'll type it in on the join screen.
+        Send this code to your group. They'll type it in on the Join screen.
       </p>
 
-
+  
       <section className="ticket">
         <div className="ticket-top">
           <div className="ticket-label">TRIP CODE</div>
@@ -82,12 +83,14 @@ function ShareCodeScreen({ trip, onContinue }) {
             <div className="ticket-leg-label">ARRIVE</div>
             <div className="ticket-leg-day">{formatDay(trip.startDate)}</div>
             <div className="ticket-leg-time">{formatTime(trip.arrivalTime) || "No time set"}</div>
+            {trip.arrivalCity && <div className="ticket-leg-time">{trip.arrivalCity}</div>}
           </div>
           <div className="ticket-leg-arrow" aria-hidden="true">&rarr;</div>
           <div className="ticket-leg">
             <div className="ticket-leg-label">DEPART</div>
             <div className="ticket-leg-day">{formatDay(trip.endDate)}</div>
             <div className="ticket-leg-time">{formatTime(trip.departureTime) || "No time set"}</div>
+            {trip.departureCity && <div className="ticket-leg-time">{trip.departureCity}</div>}
           </div>
         </div>
 
@@ -119,7 +122,6 @@ function ShareCodeScreen({ trip, onContinue }) {
           </div>
         </div>
       </section>
-
 
       <div className="share-actions">
         <motion.button

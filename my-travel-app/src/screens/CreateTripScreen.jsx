@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -21,8 +19,9 @@ import { DESTINATION_STAMPS } from "../components/destinationStamps";
 
 
 function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave, onBack }) {
-  // Are we EDITING an existing trip? (true when initialTrip was passed in)
+
   const editing = Boolean(initialTrip);
+
 
 
   const [query, setQuery] = useState("");
@@ -32,10 +31,14 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   const [departureTime, setDepartureTime] = useState(
     editing ? initialTrip.departureTime || "" : ""
   );
+  const [arrivalCity, setArrivalCity] = useState(editing ? initialTrip.arrivalCity || "" : "");
+  const [departureCity, setDepartureCity] = useState(
+    editing ? initialTrip.departureCity || "" : ""
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // The matches for what's typed. Runs right here, no backend needed.
+
   const results = searchDestinations(query);
   const popular = POPULAR_IDS.map(findDestination);
   const selected = findDestination(selectedId);
@@ -45,9 +48,8 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   const keepsOldStart = editing && startDate === initialTrip.startDate;
   const startOk = startDate >= today || keepsOldStart;
   const datesOk = startDate !== "" && endDate !== "" && startOk && endDate >= startDate;
-  // The earliest day the start-date box lets you pick.
+  // The earliest day the start-date box lets you pick
   const startMin = keepsOldStart && initialTrip.startDate < today ? initialTrip.startDate : today;
-
 
   const timesFilled = arrivalTime !== "" && departureTime !== "";
   const sameDayProblem =
@@ -61,7 +63,9 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     startDate !== initialTrip.startDate ||
     endDate !== initialTrip.endDate ||
     arrivalTime !== (initialTrip.arrivalTime || "") ||
-    departureTime !== (initialTrip.departureTime || "");
+    departureTime !== (initialTrip.departureTime || "") ||
+    arrivalCity.trim() !== (initialTrip.arrivalCity || "") ||
+    departureCity.trim() !== (initialTrip.departureCity || "");
 
   const canCreate = Boolean(selectedId) && datesOk && timesOk && changed;
 
@@ -78,6 +82,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     }
   }
 
+
   function handleStartDateChange(event) {
     const value = event.target.value;
     setStartDate(value);
@@ -92,9 +97,16 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
     setBusy(true);
     setError("");
     try {
-      // >>>>> DATA LEAVES HERE (the trip's dates and times go out)
+
       const send = editing ? onSave : onCreate;
-      await send({ startDate, endDate, arrivalTime, departureTime });
+      await send({
+        startDate,
+        endDate,
+        arrivalTime,
+        departureTime,
+        arrivalCity: arrivalCity.trim(),
+        departureCity: departureCity.trim(),
+      });
     } catch (problem) {
       setError(problem.message);
       setBusy(false);
@@ -104,7 +116,7 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
   return (
     <div className="create-page">
     <main className="create">
-      {/* TOP ROW: back arrow (left) + three little decoration stamps (right) */}
+
       <div className="create-top">
 
         <button className="back-btn" onClick={onBack} aria-label="Go back">
@@ -235,45 +247,57 @@ function CreateTripScreen({ selectedId, onSelect, onCreate, initialTrip, onSave,
         </div>
       </div>
 
-      <div className="date-row">
-        <div className="date-field">
-          <label className="field-label" htmlFor="arrival-time">
-            Arrival time
-          </label>
-          <input
-            id="arrival-time"
-            className="date-input"
-            type="time"
-            value={arrivalTime}
-            onChange={(event) => setArrivalTime(event.target.value)}
-          />
-        </div>
-        <div className="date-field">
-          <label className="field-label" htmlFor="departure-time">
-            Departure time
-          </label>
-          <input
-            id="departure-time"
-            className="date-input"
-            type="time"
-            value={departureTime}
-            onChange={(event) => setDepartureTime(event.target.value)}
-          />
-        </div>
-      </div>
-      <p className="time-hint">
+<p className="time-hint">
         {sameDayProblem
           ? "On a one-day trip, the departure has to be after the arrival."
           : "Required. When you land on the first day, and when you head home on the last."}
       </p>
 
-      {/* If saving failed, say why (red). */}
+
+      <div className="date-row">
+        <div className="date-field">
+          <label className="field-label" htmlFor="arrival-city">
+            Arrival city (optional)
+          </label>
+          <input
+            id="arrival-city"
+            className="date-input"
+            type="text"
+            value={arrivalCity}
+            maxLength={60}
+            placeholder="e.g. Paris"
+            autoComplete="off"
+            onChange={(event) => setArrivalCity(event.target.value)}
+          />
+        </div>
+        <div className="date-field">
+          <label className="field-label" htmlFor="departure-city">
+            Departure city (optional)
+          </label>
+          <input
+            id="departure-city"
+            className="date-input"
+            type="text"
+            value={departureCity}
+            maxLength={60}
+            placeholder="e.g. Nice"
+            autoComplete="off"
+            onChange={(event) => setDepartureCity(event.target.value)}
+          />
+        </div>
+      </div>
+      <p className="time-hint">
+        Already booked your tickets? Add the city you fly into and the city you fly home from.
+      </p>
+
+     
       {error && (
         <p className="time-hint" style={{ color: "var(--terracotta)", fontWeight: 700 }}>
           {error}
         </p>
       )}
 
+ 
       <motion.button
         className="btn-go"
         onClick={handleCreateClick}

@@ -1,0 +1,287 @@
+
+.dash-page {
+  --paper: #3a3d5c; 
+  --ink: #f6ebcb; 
+  --ink-soft: #d8cdae;
+  --sky: #474c70; 
+  --terracotta: #e4603a;
+  --gold: #edb04c;
+  --teal: #7fa46b; 
+  --pink: #efa3bb;
+  --font-heading: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-label: "Special Elite", "Courier New", monospace;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.dash-page .dash {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 520px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 24px 24px;
+}
+
+
+.dash-page .dash-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-page .dash-hello {
+  margin: 0 0 6px;
+  font-family: var(--font-label);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+
+.dash-page .dash h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+
+.dash-page .dash-avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 4px dotted var(--ink);
+  border-radius: 3px;
+  background-clip: padding-box;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 900;
+  cursor: pointer;
+  transform: rotate(3deg);
+}
+
+
+.dash-page .dash-stripe {
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--terracotta) 0 20px,
+    var(--gold) 20px 40px,
+    var(--teal) 40px 60px,
+    var(--pink) 60px 80px
+  );
+}
+
+
+.dash-page .dash-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-page .dash-empty {
+  padding: 28px 22px;
+  border: 3px dashed var(--ink-soft);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.dash-page .dash-empty-title {
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+
+.dash-page .trip-row {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  padding: 14px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--paper);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.dash-page .trip-row:hover {
+  transform: translateY(-2px);
+}
+
+.dash-page .trip-row-art {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.dash-page .trip-row-art .stamp {
+  border-width: 6px;
+  padding: 3px;
+}
+
+.dash-page .trip-row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dash-page .trip-row-name {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dash-page .trip-row-dates {
+  font-size: 14px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+
+.dash-page .trip-row-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+
+.dash-page .trip-row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dash-page .trip-chip {
+  padding: 6px 11px;
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.dash-page .trip-chip-code {
+  border: 2px dashed var(--paper);
+  background: transparent;
+  padding: 4px 9px;
+}
+
+.dash-page .trip-chip-organizer {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.dash-page .trip-row-people {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-page .people-stack {
+  display: flex;
+}
+
+.dash-page .people-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -6px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.dash-page .people-count {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+
+
+.dash-page .dash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-page .dash-btn {
+  min-height: 56px;
+  padding: 0 24px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.dash-page .dash-btn:hover {
+  transform: translateY(-2px);
+}
+
+.dash-page .dash-btn-main {
+  border-color: transparent;
+  background: var(--gold);
+  color: var(--paper);
+}
+
+.dash-page .dash-btn-alt {
+  background: transparent;
+  color: var(--ink);
+}
+.dash-page .dash-btn-alt:hover {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.dash-page .dash-signout {
+  align-self: center;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-label);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.dash-page .dash-signout:hover {
+  color: var(--ink);
+}
