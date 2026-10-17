@@ -1,0 +1,47 @@
+{
+    "family_code": "AAAA",
+    "country": "Japan",
+    "startDate": "10/13/2026",
+    "endDate": "10/20/2026",
+    "startTime": "8:00 PM",
+    "endTime": "6:00 PM",
+    "startCity": "Tokyo",
+    "endCity": "Kyoto",
+    "users": [{
+        "userProfile": {"userId": "U001", "name": "Alice", "email": "alice@example.com", "emailVerified": true, "organizer": true},
+        "userTravelProfile": {
+            "groundTransportation": {"value": "public", "priority": "critical"},
+            "dietaryRestrictions": {"value": ["vegan"], "priority": "weak_link"},
+            "diningCuisine": {"value": "local", "priority": "flexible"},
+            "tripPace": {"value": 0.8, "priority": "flexible"},
+            "activityFocus": {"value": ["culture"], "priority": "flexible"},
+            "budgetTier": {"value": 2, "priority": "critical"},
+            "morningRoutine": {"value": "early", "priority": "critical"},
+            "interestedInShopping": {"value": false, "priority": "flexible"},
+            "travelStyle": {"value": 0.7, "priority": "flexible"},
+            "tourPreference": {"value": "self-guided", "priority": "flexible"},
+            "luggagePreference": {"value": "backpacking", "priority": "critical"},
+            "petFriendly": {"value": false, "priority": "weak_link"},
+            "activityPopularity": {"value": 0.2, "priority": "flexible"}
+        }
+    },
+        {
+        "userProfile": {"userId": "U002", "name": "Bob", "email": "bob@example.com", "emailVerified": true, "organizer": false},
+        "userTravelProfile": {
+            "groundTransportation": {"value": "public", "priority": "critical"},
+            "dietaryRestrictions": {"value": ["gluten-free"], "priority": "weak_link"},
+            "diningCuisine": {"value": "casual", "priority": "flexible"},
+            "tripPace": {"value": 0.4, "priority": "flexible"},
+            "activityFocus": {"value": ["culture", "nature"], "priority": "flexible"},
+            "budgetTier": {"value": 3, "priority": "critical"},
+            "morningRoutine": {"value": "late", "priority": "critical"},
+            "interestedInShopping": {"value": true, "priority": "flexible"}, 
+            "travelStyle": {"value": 0.3, "priority": "flexible"},
+            "tourPreference": {"value": "guided", "priority": "flexible"},
+            "luggagePreference": {"value": "backpacking", "priority": "critical"},
+            "petFriendly": {"value": false, "priority": "weak_link"},
+            "activityPopularity": {"value": 1, "priority": "flexible"}
+        }
+    }
+]
+}

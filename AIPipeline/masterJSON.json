@@ -1,9 +1,9 @@
 {
     "country": "Japan",
-    "startDate": "2026-10-13",
-    "endDate": "2026-10-20",
-    "startTime": "09:00",
-    "endTime": "18:00",
+    "startDate": "10/13/2026",
+    "endDate": "10/20/2026",
+    "startTime": "8:00 PM",
+    "endTime": "6:00 PM",
     "startCity": "Tokyo",
     "endCity": "Kyoto",
     "groupMembers": [
@@ -24,15 +24,13 @@
         "dietaryRestrictions": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     [
                         "vegan"
                     ]
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     [
                         "gluten-free"
                     ]
@@ -43,13 +41,11 @@
         "diningCuisine": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     "local"
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     "casual"
                 ]
             ],
@@ -58,13 +54,11 @@
         "tripPace": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     0.8
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     0.4
                 ]
             ],
@@ -73,15 +67,13 @@
         "activityFocus": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     [
                         "culture"
                     ]
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     [
                         "culture",
                         "nature"
@@ -91,34 +83,21 @@
             "priority": "flexible"
         },
         "budgetTier": {
-            "value": "WARNING: Not everybody's budgetTier matches (2, 3). User preferences: Alice (userId: U001): 2; Bob (userId: U002): 3",
+            "value": "WARNING: Not everybody's budgetTier matches (2, 3). User preferences: Alice (U001), 2; Bob (U002), 3",
             "priority": "critical"
         },
         "morningRoutine": {
-            "value": [
-                [
-                    "Alice",
-                    "U001",
-                    "early"
-                ],
-                [
-                    "Bob",
-                    "U002",
-                    "late"
-                ]
-            ],
-            "priority": "flexible"
+            "value": "WARNING: Not everybody's morningRoutine matches (early, late). User preferences: Alice (U001), early; Bob (U002), late",
+            "priority": "critical"
         },
         "interestedInShopping": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     false
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     true
                 ]
             ],
@@ -127,13 +106,11 @@
         "travelStyle": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     0.7
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     0.3
                 ]
             ],
@@ -142,13 +119,11 @@
         "tourPreference": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     "self-guided"
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     "guided"
                 ]
             ],
@@ -161,13 +136,11 @@
         "petFriendly": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     false
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     false
                 ]
             ],
@@ -176,13 +149,11 @@
         "activityPopularity": {
             "value": [
                 [
-                    "Alice",
-                    "U001",
+                    "Alice (U001)",
                     0.2
                 ],
                 [
-                    "Bob",
-                    "U002",
+                    "Bob (U002)",
                     1
                 ]
             ],

@@ -40,7 +40,7 @@ def process_master_preferences(
     for key, attributes in template_profile.items():
         priority = attributes.get("priority")
         preference_tuples = _get_preference_tuples(user_jsons, key)
-        raw_values = [preference[2] for preference in preference_tuples]
+        raw_values = [preference[1] for preference in preference_tuples]
 
         if not preference_tuples:
             master_value = None
@@ -53,8 +53,8 @@ def process_master_preferences(
             else:
                 distinct_choices = ", ".join(map(str, unique_values))
                 user_preferences = "; ".join(
-                    f"{name} (userId: {user_id}): {preference}"
-                    for name, user_id, preference in preference_tuples
+                    f"{user_identity}, {preference}"
+                    for user_identity, preference in preference_tuples
                 )
                 master_value = (
                     f"WARNING: Not everybody's {key} matches "
@@ -85,8 +85,7 @@ def _get_preference_tuples(user_jsons, key):
         preference = user_data.get("userTravelProfile", {}).get(key, {}).get("value")
         if preference is not None:
             preference_tuples.append((
-                profile.get("name"),
-                profile.get("userId"),
+                f"{profile.get('name')} ({profile.get('userId')})",
                 preference
             ))
     return preference_tuples
