@@ -121,7 +121,6 @@ export interface Env extends DOBindings<typeof __DO_MANIFEST__> {
   ALLOW_DEBUG_ROUTES?: string
   AUTH0_DOMAIN?: string
   AUTH0_CLIENT_ID?: string
-  AUTH0_CLIENT_SECRET?: string
   AUTH0_SESSION_SECRET?: string
 }
 

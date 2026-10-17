@@ -47,6 +47,8 @@ interface TravelFamily {
   country: string
   startDate: string
   endDate: string
+  arrivalCity: string
+  departureCity: string
   ownerId: string
   users: FamilyMember[]
 }
@@ -199,12 +201,11 @@ async function readJsonBody(c: Context<AppContext>): Promise<Record<string, unkn
   }
 }
 
-function auth0Config(env: Env): { domain: string; clientId: string; clientSecret?: string } | null {
+function auth0Config(env: Env): { domain: string; clientId: string } | null {
   const domain = env.AUTH0_DOMAIN?.trim().replace(/^https?:\/\//u, '').replace(/\/$/u, '')
   const clientId = env.AUTH0_CLIENT_ID?.trim()
   if (!domain || !clientId || !/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u.test(domain)) return null
-  const clientSecret = env.AUTH0_CLIENT_SECRET?.trim()
-  return { domain, clientId, ...(clientSecret ? { clientSecret } : {}) }
+  return { domain, clientId }
 }
 
 async function auth0Json(
@@ -316,12 +317,12 @@ async function getStored<T>(env: Env, key: string): Promise<T | null> {
       }),
     }),
   )
-  if (!response.ok) throw new Error(`DeepSpace record read failed (${response.status}).`)
   const result = (await response.json()) as ActionResult<GetActionData>
   if (!result.success) {
     if (/not found|does not exist/iu.test(result.error)) return null
     throw new Error(`DeepSpace record read failed: ${result.error}`)
   }
+  if (!response.ok) throw new Error(`DeepSpace record read failed (${response.status}).`)
   return result.data.record.data as T
 }
 
@@ -398,6 +399,8 @@ function familyResponse(family: TravelFamily, includeMembers = true) {
     country: family.country,
     startDate: family.startDate,
     endDate: family.endDate,
+    arrivalCity: family.arrivalCity ?? '',
+    departureCity: family.departureCity ?? '',
     users: includeMembers ? family.users : [],
   }
 }
@@ -453,7 +456,6 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
         `https://${config.domain}/passwordless/start`,
         {
           client_id: config.clientId,
-          ...(config.clientSecret ? { client_secret: config.clientSecret } : {}),
           connection: 'email',
           email: email.trim(),
           send: 'code',
@@ -509,7 +511,6 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
         realm: 'email',
         scope: 'openid profile email',
       })
-      if (config.clientSecret) tokenBody.set('client_secret', config.clientSecret)
       const tokenResponse = await auth0Json(
         `https://${config.domain}/oauth/token`,
         tokenBody,
@@ -611,6 +612,17 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       user.avatar = body.avatar
     }
     await putStored(c.env, userKey(userId), user)
+    await Promise.all(
+      user.families.map(async (familyCode) => {
+        const family = await getStored<TravelFamily>(c.env, familyKey(familyCode))
+        if (!family) return
+        const member = family.users.find((entry) => entry.userProfile.userId === userId)
+        if (!member) return
+        member.userProfile.name = user.name
+        member.userProfile.avatar = user.avatar
+        await persistFamily(c.env, family)
+      }),
+    )
     return c.json({ success: true })
   })
 
@@ -643,6 +655,10 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       body.country.trim().length > 120 ||
       typeof body.startDate !== 'string' ||
       typeof body.endDate !== 'string' ||
+      (body.arrivalCity !== undefined &&
+        (typeof body.arrivalCity !== 'string' || body.arrivalCity.length > 120)) ||
+      (body.departureCity !== undefined &&
+        (typeof body.departureCity !== 'string' || body.departureCity.length > 120)) ||
       !body.startDate.trim() ||
       !body.endDate.trim() ||
       !Number.isFinite(Date.parse(body.startDate)) ||
@@ -664,6 +680,8 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
         country: body.country.trim(),
         startDate: body.startDate.trim(),
         endDate: body.endDate.trim(),
+        arrivalCity: typeof body.arrivalCity === 'string' ? body.arrivalCity.trim() : '',
+        departureCity: typeof body.departureCity === 'string' ? body.departureCity.trim() : '',
         ownerId: user.userId,
         users: [memberFor(user, true)],
       }
@@ -735,6 +753,10 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
       !body.country.trim() ||
       typeof body.startDate !== 'string' ||
       typeof body.endDate !== 'string' ||
+      (body.arrivalCity !== undefined &&
+        (typeof body.arrivalCity !== 'string' || body.arrivalCity.length > 120)) ||
+      (body.departureCity !== undefined &&
+        (typeof body.departureCity !== 'string' || body.departureCity.length > 120)) ||
       !body.startDate.trim() ||
       !body.endDate.trim() ||
       !Number.isFinite(Date.parse(body.startDate)) ||
@@ -746,6 +768,8 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     family.country = body.country.trim()
     family.startDate = body.startDate.trim()
     family.endDate = body.endDate.trim()
+    family.arrivalCity = typeof body.arrivalCity === 'string' ? body.arrivalCity.trim() : ''
+    family.departureCity = typeof body.departureCity === 'string' ? body.departureCity.trim() : ''
     await persistFamily(c.env, family)
     return c.json({ success: true })
   })

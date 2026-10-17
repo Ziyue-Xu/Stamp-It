@@ -21,7 +21,7 @@ function testApp() {
                 success: true,
                 data: { record: { recordId: params.recordId, data: JSON.parse(previous) } },
               })
-            : Response.json({ success: false, error: 'Record not found.' })
+            : Response.json({ success: false, error: 'Record not found.' }, { status: 404 })
         }
         if (tool === 'records.create' && previous) {
           return Response.json({ success: false, error: 'Record already exists.' })
@@ -100,16 +100,17 @@ describe('Auth0 travel routes', () => {
       body: JSON.stringify({ name: 'Member', email: 'member@example.com' }),
     })
     expect(start.status).toBe(200)
-    expect(auth0Fetch.mock.calls[0]?.[1]).toMatchObject({
+    const startRequest = auth0Fetch.mock.calls[0]?.[1] as RequestInit | undefined
+    expect(startRequest).toMatchObject({
       headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         client_id: 'client-id',
-        client_secret: 'test-client-secret',
         connection: 'email',
         email: 'member@example.com',
         send: 'code',
       }),
     })
+    expect(JSON.parse(String(startRequest?.body))).not.toHaveProperty('client_secret')
     const pendingCookie = cookieFrom(start, 'travel_pending')
 
     const verify = await request('/auth/verify', {
@@ -124,7 +125,7 @@ describe('Auth0 travel routes', () => {
     expect(verify.status).toBe(200)
     const tokenRequest = auth0Fetch.mock.calls[1]?.[1] as RequestInit | undefined
     expect(tokenRequest?.body).toBeInstanceOf(URLSearchParams)
-    expect((tokenRequest?.body as URLSearchParams).get('client_secret')).toBe('test-client-secret')
+    expect((tokenRequest?.body as URLSearchParams).has('client_secret')).toBe(false)
     expect(await verify.json()).toEqual({
       userId: 'auth0|member-1',
       name: 'Member',
@@ -150,6 +151,8 @@ describe('Auth0 travel routes', () => {
         country: 'Japan',
         startDate: '10/20/2026, 9:00 AM',
         endDate: '10/25/2026, 5:00 PM',
+        arrivalCity: 'Tokyo',
+        departureCity: 'Osaka',
       }),
     })
     expect(create.status).toBe(200)
@@ -157,6 +160,23 @@ describe('Auth0 travel routes', () => {
     expect(familyCode).toMatch(/^\d{4}$/u)
     expect(objects.has('travel-users/auth0|member-1')).toBe(true)
     expect(objects.has(`travel-families/${familyCode}`)).toBe(true)
+    expect(JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}')).toMatchObject({
+      arrivalCity: 'Tokyo',
+      departureCity: 'Osaka',
+    })
+
+    const updateProfile = await request('/users/auth0%7Cmember-1', {
+      method: 'PATCH',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: 'Updated Member', avatar: 'fuji' }),
+    })
+    expect(updateProfile.status).toBe(200)
+    expect(JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}').users[0].userProfile)
+      .toMatchObject({ name: 'Updated Member', avatar: 'fuji' })
 
     const travelProfile = { budgetTier: { value: 'moderate', priority: 'critical' } }
     const profilePath = `/families/${familyCode}/members/auth0%7Cmember-1/travel-profile`
@@ -179,7 +199,12 @@ describe('Auth0 travel routes', () => {
     })
     expect(userFamilies.status).toBe(200)
     expect(await userFamilies.json()).toMatchObject([
-      { family_code: familyCode, country: 'Japan' },
+      {
+        family_code: familyCode,
+        country: 'Japan',
+        arrivalCity: 'Tokyo',
+        departureCity: 'Osaka',
+      },
     ])
   })
 

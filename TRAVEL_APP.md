@@ -26,8 +26,6 @@ DeepSpace secrets store; do not put them in source files or `.dev.vars`:
 
 - `AUTH0_DOMAIN`: tenant hostname (for example, `tenant.us.auth0.com`)
 - `AUTH0_CLIENT_ID`: the passwordless application's client ID
-- `AUTH0_CLIENT_SECRET`: the application's client secret, required for
-  confidential/Regular Web Applications; omit it for public applications
 - `AUTH0_SESSION_SECRET`: a random secret with at least 32 characters
 
 The current app is registered to a GitHub source, and deploy ships the local
@@ -39,12 +37,11 @@ passwordless application's values:
 ```powershell
 npx.cmd deepspace secrets set AUTH0_DOMAIN --stdin
 npx.cmd deepspace secrets set AUTH0_CLIENT_ID --stdin
-npx.cmd deepspace secrets set AUTH0_CLIENT_SECRET --stdin
 ```
 
 For each command, enter that value on standard input, then press Ctrl+Z and
-Enter to finish. Only set `AUTH0_CLIENT_SECRET` when the Auth0 application's
-authentication method requires it. Generate and store the signing secret
+Enter to finish. The travel app uses an Auth0 Native application and does not
+send or need an Auth0 client secret. Generate and store the signing secret
 without putting its value in command history:
 
 ```powershell

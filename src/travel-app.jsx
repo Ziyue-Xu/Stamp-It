@@ -5,44 +5,128 @@ import CreateTripScreen from '../my-travel-app/src/screens/CreateTripScreen.jsx'
 import JoinCodeScreen from '../my-travel-app/src/screens/JoinCodeScreen.jsx'
 import ShareCodeScreen from '../my-travel-app/src/screens/ShareCodeScreen.jsx'
 import PreferencesScreen from '../my-travel-app/src/screens/PreferencesScreen.jsx'
-import { createTrip, joinTrip } from '../my-travel-app/src/api/tripApi.js'
-import { saveProfile } from '../my-travel-app/src/api/profileApi.js'
+import DashboardScreen from '../my-travel-app/src/screens/DashboardScreen.jsx'
+import AccountScreen from '../my-travel-app/src/screens/AccountScreen.jsx'
+import TripScreen from '../my-travel-app/src/screens/TripScreen.jsx'
+import PlanScreen from '../my-travel-app/src/screens/PlanScreen.jsx'
+import { home } from '../my-travel-app/src/themes/home.js'
+import { findDestination } from '../my-travel-app/src/data/destinations.js'
+import { hasAnyAnswer, answersFromTravelProfile } from '../my-travel-app/src/data/preferenceQuestions.js'
+import {
+  createTrip,
+  getCreatorId,
+  getMyTrips,
+  joinTrip,
+  updateTrip,
+} from '../my-travel-app/src/api/tripApi.js'
+import { clearProfile, saveProfile } from '../my-travel-app/src/api/profileApi.js'
 import { getTravelProfile } from '../my-travel-app/src/api/preferencesApi.js'
+import { generateGroupPlan } from '../my-travel-app/src/api/planApi.js'
 
 export default function TravelApp() {
-  const [page, setPage] = useState('loading')
+  const [screen, setScreen] = useState('loading')
   const [profile, setProfile] = useState(null)
+  const [trips, setTrips] = useState([])
   const [trip, setTrip] = useState(null)
-  const [selectedId, setSelectedId] = useState('')
+  const [destinationId, setDestinationId] = useState(null)
+  const [savedAnswers, setSavedAnswers] = useState(null)
+  const [hasTripPreferences, setHasTripPreferences] = useState(false)
+  const [plan, setPlan] = useState(null)
   const [intent, setIntent] = useState('create')
-  const [savedProfile, setSavedProfile] = useState(null)
+  const [pageError, setPageError] = useState('')
+
+  const destination = findDestination(destinationId)
+  const theme = destination ? destination.theme : home
+
+  async function showDashboard(person) {
+    const myTrips = await getMyTrips(person.userId)
+    setTrips(myTrips)
+    setTrip(null)
+    setDestinationId(null)
+    setSavedAnswers(null)
+    setHasTripPreferences(false)
+    setPlan(null)
+    setScreen('dashboard')
+  }
 
   useEffect(() => {
     let active = true
-    fetch('/auth/me')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((session) => {
+    async function loadSession() {
+      try {
+        const response = await fetch('/auth/me')
+        if (response.status === 401) {
+          if (active) setScreen('welcome')
+          return
+        }
+        if (!response.ok) throw new Error('Could not check your sign-in. Refresh and try again.')
+        const data = await response.json()
         if (!active) return
-        if (session?.user?.userId) setProfile(session.user)
-        setPage('welcome')
-      })
-      .catch(() => {
-        if (active) setPage('welcome')
-      })
+        if (data.user?.userId) {
+          const saved = { ...data.user, avatar: data.user.avatar || 'taj' }
+          await saveProfile(saved)
+          setProfile(saved)
+          await showDashboard(saved)
+        } else {
+          setScreen('welcome')
+        }
+      } catch (error) {
+        if (active) {
+          setPageError(error instanceof Error ? error.message : 'Could not load the app.')
+          setScreen('welcome')
+        }
+      }
+    }
+    void loadSession()
     return () => {
       active = false
     }
   }, [])
 
-  async function handleSignIn(account) {
-    const saved = { ...account, avatar: account.avatar || 'taj' }
-    await saveProfile(saved)
-    setProfile(saved)
-    setPage(intent === 'join' ? 'join' : 'create')
+  async function goHome() {
+    setPageError('')
+    if (profile) {
+      try {
+        await showDashboard(profile)
+      } catch (error) {
+        setPageError(error instanceof Error ? error.message : 'Could not load your trips.')
+      }
+    } else {
+      setTrip(null)
+      setDestinationId(null)
+      setScreen('welcome')
+    }
   }
 
-  async function handleCreate(details) {
-    const created = await createTrip({ ...details, destinationId: selectedId })
+  function handleNewTrip() {
+    setPageError('')
+    setIntent('create')
+    setDestinationId(null)
+    setScreen(profile ? 'create' : 'signup')
+  }
+
+  function handleJoinTrip() {
+    setPageError('')
+    setIntent('join')
+    setScreen(profile ? 'join' : 'signup')
+  }
+
+  async function handleSignedIn(signedInProfile) {
+    const response = await fetch('/auth/me')
+    if (!response.ok) throw new Error('Sign-in completed, but your profile could not be loaded.')
+    const data = await response.json()
+    const saved = { ...signedInProfile, ...data.user, avatar: data.user?.avatar || 'taj' }
+    await saveProfile(saved)
+    setProfile(saved)
+    setPageError('')
+    if (intent === 'join') {
+      setScreen('join')
+    } else {
+      setScreen('create')
+    }
+  }
+
+  async function handleCreateTrip(details) {
+    const created = await createTrip({ ...details, destinationId })
     const readyTrip = {
       ...created,
       creatorId: profile.userId,
@@ -56,86 +140,255 @@ export default function TravelApp() {
       ],
     }
     setTrip(readyTrip)
-    setPage('share')
+    setPlan(null)
+    setScreen('share')
   }
 
-  async function handleFindTrip(foundTrip) {
-    const member = {
-      userId: profile.userId,
-      name: profile.name,
-      email: profile.email,
-      avatar: profile.avatar,
+  async function getJoinedTrip(joinedTrip) {
+    const updatedTrip = await joinTrip(joinedTrip, profile)
+    const myTrips = await getMyTrips(profile.userId)
+    setTrips(myTrips)
+    return myTrips.find((item) => item.familyId === joinedTrip.familyId) || updatedTrip
+  }
+
+  async function goToPreferencesOrDashboard(person, selectedTrip) {
+    const existing = await getTravelProfile(person.userId, selectedTrip.familyId)
+    if (existing && hasAnyAnswer(existing)) {
+      await showDashboard(person)
+      return
     }
-    await joinTrip(foundTrip, member)
-    setTrip({
-      ...foundTrip,
-      members: foundTrip.members.some((entry) => entry.userId === member.userId)
-        ? foundTrip.members
-        : [...foundTrip.members, member],
+    setTrip(selectedTrip)
+    setDestinationId(selectedTrip.destinationId)
+    setSavedAnswers(null)
+    setHasTripPreferences(false)
+    setScreen('preferences')
+  }
+
+  async function handleShareContinue() {
+    if (!profile || !trip) return
+    try {
+      const joinedTrip = await getJoinedTrip(trip)
+      await goToPreferencesOrDashboard(profile, joinedTrip)
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Could not continue to your trip.')
+    }
+  }
+
+  async function handleTripFound(foundTrip) {
+    const joinedTrip = await getJoinedTrip(foundTrip)
+    await goToPreferencesOrDashboard(profile, joinedTrip)
+  }
+
+  async function handlePreferencesDone() {
+    if (savedAnswers && trip && profile) {
+      const saved = await getTravelProfile(profile.userId, trip.familyId)
+      setHasTripPreferences(Boolean(saved && hasAnyAnswer(saved)))
+      setSavedAnswers(null)
+      setScreen('trip')
+    } else if (profile) {
+      await showDashboard(profile)
+    }
+  }
+
+  function handleCancelPreferences() {
+    setSavedAnswers(null)
+    setScreen('trip')
+  }
+
+  async function handleEditPreferences() {
+    if (!profile || !trip) return
+    try {
+      const saved = await getTravelProfile(profile.userId, trip.familyId)
+      setSavedAnswers(answersFromTravelProfile(saved))
+      setScreen('preferences')
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Could not load your preferences.')
+    }
+  }
+
+  async function handleOpenTrip(chosenTrip) {
+    try {
+      const saved = await getTravelProfile(profile.userId, chosenTrip.familyId)
+      setHasTripPreferences(Boolean(saved && hasAnyAnswer(saved)))
+      setTrip(chosenTrip)
+      setDestinationId(chosenTrip.destinationId)
+      setPlan(null)
+      setScreen('trip')
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Could not open this trip.')
+    }
+  }
+
+  function handleEditTrip() {
+    if (!trip || !profile || getCreatorId(trip) !== profile.userId) return
+    setDestinationId(trip.destinationId)
+    setScreen('editTrip')
+  }
+
+  function handleCancelEditTrip() {
+    setDestinationId(trip.destinationId)
+    setScreen('trip')
+  }
+
+  async function handleUpdateTrip(details) {
+    const updated = await updateTrip(
+      trip,
+      { ...details, destinationId },
+      profile.userId,
+    )
+    setTrip(updated)
+    setTrips((current) => current.map((item) => (
+      item.familyId === updated.familyId ? { ...item, ...updated } : item
+    )))
+    setDestinationId(updated.destinationId)
+    setScreen('trip')
+  }
+
+  async function handleSaveAccount(changes) {
+    const response = await fetch(`/users/${encodeURIComponent(profile.userId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: changes.name, avatar: changes.avatar }),
     })
-    setPage('preferences')
+    if (!response.ok) {
+      const data = await response.json().catch(() => null)
+      throw new Error(data?.error || 'Could not save your profile. Please try again.')
+    }
+    const updated = { ...profile, ...changes }
+    await saveProfile(updated)
+    setProfile(updated)
+    setTrips((current) => current.map((item) => ({
+      ...item,
+      members: item.members.map((member) => (
+        member.userId === updated.userId ? { ...member, ...updated } : member
+      )),
+    })))
   }
 
-  async function handleDone() {
-    setSavedProfile(await getTravelProfile(profile.userId, trip.familyId))
-    setPage('done')
+  async function handleSignOut() {
+    try {
+      const response = await fetch('/auth/sign-out', { method: 'POST' })
+      if (!response.ok) throw new Error('Could not sign out. Please try again.')
+      await clearProfile()
+      setProfile(null)
+      setTrips([])
+      setTrip(null)
+      setDestinationId(null)
+      setSavedAnswers(null)
+      setHasTripPreferences(false)
+      setPlan(null)
+      setScreen('welcome')
+      setPageError('')
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Could not sign out.')
+    }
   }
 
-  if (page === 'loading') {
-    return <div className="min-h-screen bg-[#f7f2e8]" aria-busy="true" />
+  async function handleGeneratePlan() {
+    const result = await generateGroupPlan(trip.familyId, profile.userId, trip)
+    if (result.plan) {
+      setPlan(result.plan)
+      setScreen('plan')
+    }
+    return result
   }
-  if (page === 'welcome') {
-    return (
-      <WelcomeScreen
-        onStartTrip={() => {
-          setIntent('create')
-          setSelectedId('')
-          setPage(profile ? 'create' : 'signup')
-        }}
-        onJoinTrip={() => {
-          setIntent('join')
-          setPage(profile ? 'join' : 'signup')
-        }}
-      />
-    )
+
+  const colors = {
+    '--paper': theme.paper,
+    '--ink': theme.ink,
+    '--ink-soft': theme.inkSoft,
+    '--sky': theme.sky,
+    '--terracotta': theme.terracotta,
+    '--gold': theme.gold,
+    '--teal': theme.teal,
+    '--pink': theme.pink,
+    '--gold-soft': theme.goldSoft,
+    '--teal-soft': theme.tealSoft,
+    '--green-soft': theme.greenSoft,
   }
-  if (page === 'signup') {
-    return <SignUpScreen onSave={handleSignIn} onBack={() => setPage('welcome')} />
-  }
-  if (page === 'create') {
-    return (
-      <CreateTripScreen
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-        onCreate={handleCreate}
-        onBack={() => setPage('welcome')}
-      />
-    )
-  }
-  if (page === 'join') {
-    return <JoinCodeScreen onFound={handleFindTrip} onBack={() => setPage('welcome')} />
-  }
-  if (page === 'share') {
-    return <ShareCodeScreen trip={trip} onContinue={() => setPage('preferences')} />
-  }
-  if (page === 'preferences') {
-    return <PreferencesScreen profile={profile} trip={trip} onDone={handleDone} />
-  }
+
   return (
-    <main className="mx-auto max-w-2xl p-8 font-sans">
-      <h1 className="text-2xl font-semibold">Your travel preferences are saved</h1>
-      <pre className="mt-4 overflow-auto rounded bg-white p-4 text-sm">
-        {JSON.stringify(savedProfile, null, 2)}
-      </pre>
-      <button
-        className="mt-4 rounded bg-black px-4 py-2 text-white"
-        onClick={() => {
-          setTrip(null)
-          setPage('welcome')
-        }}
-      >
-        Continue
-      </button>
-    </main>
+    <div className="app" style={colors}>
+      {pageError && (
+        <p role="alert" className="form-error" onClick={() => setPageError('')}>
+          {pageError}
+        </p>
+      )}
+      {screen === 'welcome' && (
+        <WelcomeScreen onStartTrip={handleNewTrip} onJoinTrip={handleJoinTrip} />
+      )}
+      {screen === 'signup' && (
+        <SignUpScreen onSave={handleSignedIn} onBack={goHome} />
+      )}
+      {screen === 'create' && (
+        <CreateTripScreen
+          selectedId={destinationId}
+          onSelect={setDestinationId}
+          onCreate={handleCreateTrip}
+          onBack={goHome}
+        />
+      )}
+      {screen === 'editTrip' && trip && profile && (
+        <CreateTripScreen
+          initialTrip={trip}
+          selectedId={destinationId}
+          onSelect={setDestinationId}
+          onSave={handleUpdateTrip}
+          onBack={handleCancelEditTrip}
+        />
+      )}
+      {screen === 'share' && trip && (
+        <ShareCodeScreen trip={trip} onContinue={handleShareContinue} />
+      )}
+      {screen === 'join' && (
+        <JoinCodeScreen onFound={handleTripFound} onBack={goHome} />
+      )}
+      {screen === 'preferences' && profile && trip && (
+        <PreferencesScreen
+          profile={profile}
+          trip={trip}
+          initialAnswers={savedAnswers}
+          onDone={handlePreferencesDone}
+          onCancel={savedAnswers ? handleCancelPreferences : null}
+        />
+      )}
+      {screen === 'dashboard' && profile && (
+        <DashboardScreen
+          profile={profile}
+          trips={trips}
+          onNewTrip={handleNewTrip}
+          onJoinTrip={handleJoinTrip}
+          onOpenTrip={handleOpenTrip}
+          onOpenAccount={() => setScreen('account')}
+          onSignOut={handleSignOut}
+        />
+      )}
+      {screen === 'account' && profile && (
+        <AccountScreen
+          profile={profile}
+          onSave={handleSaveAccount}
+          onBack={() => showDashboard(profile).catch((error) => {
+            setPageError(error instanceof Error ? error.message : 'Could not load your trips.')
+          })}
+          onSignOut={handleSignOut}
+        />
+      )}
+      {screen === 'trip' && trip && profile && (
+        <TripScreen
+          trip={trip}
+          profile={profile}
+          hasPreferences={hasTripPreferences}
+          onBack={() => showDashboard(profile).catch((error) => {
+            setPageError(error instanceof Error ? error.message : 'Could not load your trips.')
+          })}
+          onEditPreferences={handleEditPreferences}
+          onEditTrip={handleEditTrip}
+          onGeneratePlan={handleGeneratePlan}
+        />
+      )}
+      {screen === 'plan' && plan && trip && (
+        <PlanScreen plan={plan} trip={trip} onBack={() => setScreen('trip')} />
+      )}
+    </div>
   )
 }
