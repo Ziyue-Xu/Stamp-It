@@ -40,7 +40,6 @@
   background: color-mix(in srgb, var(--paper) 10%, transparent);
 }
 
-
 .plan-page .plan-stop-transit .plan-edit-btn {
   margin: 0 0 0 auto;
   padding: 4px 8px;
@@ -129,7 +128,7 @@
   min-width: 0;
 }
 
-
+/* the DO / EAT / STAY / GO choice */
 .plan-page .plan-kind-choices {
   display: flex;
   gap: 8px;
@@ -220,4 +219,38 @@
   letter-spacing: 2px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+
+.plan-page .plan-regen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 8px;
+}
+.plan-page .plan-regen-btn {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gold);
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+.plan-page .plan-regen-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+}
+.plan-page .plan-regen-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.plan-page .plan-regen-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: center;
 }

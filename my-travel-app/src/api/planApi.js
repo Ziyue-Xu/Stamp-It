@@ -15,6 +15,14 @@ function membersOf(trip) {
   return trip && Array.isArray(trip.members) ? trip.members : [];
 }
 
+function writeSavedPlan(familyId, plan) {
+  try {
+    localStorage.setItem(SAVED_PLAN_KEY + familyId, JSON.stringify(plan));
+  } catch (problem) {
+    // storage blocked: the plan still shows, it just won't be remembered
+  }
+}
+
 function readSavedPlan(familyId) {
   try {
     const text = localStorage.getItem(SAVED_PLAN_KEY + familyId);
@@ -25,10 +33,28 @@ function readSavedPlan(familyId) {
 }
 
 
+export async function getExistingPlan(familyId, trip) {
+  if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`
+      );
+      if (!response.ok) return { plan: null };
+      const data = await response.json();
+      return { plan: planFromBackend(data, membersOf(trip)) };
+    } catch (problem) {
+      return { plan: null };
+    }
+  }
+  
+  return { plan: readSavedPlan(familyId) };
+}
+
+
 export async function generateGroupPlan(familyId, requestedByUserId, trip) {
   if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
-    // ===== REAL BRANCH =====
-    // >>>>> DATA LEAVES HERE (asks the backend to build the plan)
+
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`,
       {
@@ -48,9 +74,9 @@ export async function generateGroupPlan(familyId, requestedByUserId, trip) {
   }
 
 
-  const edited = readSavedPlan(familyId);
-  if (edited) return { plan: edited };
-  return { plan: { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true } };
+  const fresh = { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true };
+  writeSavedPlan(familyId, fresh);
+  return { plan: fresh };
 }
 
 
@@ -85,10 +111,7 @@ export async function savePlan(familyId, userId, plan) {
 
 
 export async function resetPlan(familyId, trip) {
-  try {
-    localStorage.removeItem(SAVED_PLAN_KEY + familyId);
-  } catch (problem) {
-    // nothing to remove if storage is blocked
-  }
-  return { plan: { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true } };
+  const fresh = { ...planFromBackend(sampleTrip, membersOf(trip)), isSample: true };
+  writeSavedPlan(familyId, fresh); // replaces the edited copy with the original
+  return { plan: fresh };
 }
