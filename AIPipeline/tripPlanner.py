@@ -49,12 +49,43 @@ class TimelineItem(BaseModel):
     estimated_cost: Optional[CostEstimate] = None
     notes_and_tips: Optional[List[str]] = Field(description="Important context like 'Cash only', 'Reservation confirmed'")
 
+class SplitBranch(BaseModel):
+    id: str = Field(description="Unique identifier for this branch")
+    label: str = Field(description="Short description of who or what this branch is for")
+    traveler_ids: Optional[List[str]] = Field(
+        default=None,
+        description="Identifiers or names of travelers taking this branch, when applicable"
+    )
+    timeline: List[TimelineItem] = Field(
+        description="Branch-specific activities and transit during the split interval"
+    )
+
+class Split(BaseModel):
+    id: str = Field(description="Unique identifier for the split")
+    start_time: str = Field(description="24-hour local time when the group separates, e.g., '14:00'")
+    end_time: str = Field(description="24-hour local time when the group begins to reunite, e.g., '16:30'")
+    reason: str = Field(description="Why the group is splitting")
+    branches: List[SplitBranch] = Field(
+        description="Parallel branch itineraries; each branch may use different transit"
+    )
+    rejoin_time: str = Field(description="24-hour local time when the group is together again")
+    rejoin_location: LocationDetails = Field(
+        description="Location where all branches reunite before continuing on the shared path"
+    )
+
 class DayPlan(BaseModel):
     day_number: int
     date: str = Field(description="YYYY-MM-DD")
     base_city: str
     day_theme_or_summary: str
     timeline: List[TimelineItem]
+    splits: List[Split] = Field(
+        default_factory=list,
+        description=(
+            "Optional parallel plans for part of the day. Keep shared activities and "
+            "transit in timeline; put branch-specific activities and transit here."
+        )
+    )
 
 class TripItinerary(BaseModel):
     trip_title: str
@@ -81,7 +112,8 @@ def create_gemini_client() -> genai.Client:
 
 
 # MAIN FUNCTION TO GENERATE TRIP PLAN. SIMPLY INPUT A VALID FAMILY JSON.
-def generate_trip_plan(request: str, familyJSON: dict) -> str:
+def generate_trip_plan(familyJSON: dict) -> str:
+    request = tripPrompts.generationPrompt
     # Generate a trip plan from a natural-language request.
     if not request.strip():
         raise ValueError("The trip-planning request cannot be empty.")
@@ -122,6 +154,47 @@ def generate_trip_plan(request: str, familyJSON: dict) -> str:
 
     return response.output_text
 
+# MAIN FUNCTION TO GENERATE TRIP PLAN. SIMPLY INPUT A VALID FAMILY JSON.
+def split_trip_plan(familyJSON: dict, userID: str, trip: dict, specificRequests: str) -> str:
+    request = tripPrompts.splitPrompt
+    # Modify a trip plan to include splits based on a natural-language request.
+    if not request.strip():
+        raise ValueError("The trip-planning request cannot be empty.")
+
+    userJson = None
+    for user in familyJSON["users"]:
+        if user.get("userProfile", {}).get("userId") == userID:
+            userJson = user
+            break
+    if not userJson:
+        raise ValueError(f"User ID {userID} not found in family JSON.")
+
+    userJson = json.dumps(userJson)
+    familyJSON = json.dumps(familyJSON)
+    trip = json.dumps(trip)
+
+    client = create_gemini_client()
+
+
+    response = client.interactions.create(
+        model=MODEL_NAME,
+        tools=[{"type": "google_maps"}],
+        input=f"User Preferences: {userJson} \n\n Overall Preference: {familyJSON} \n\n Trip: {trip} \n\n Request: {request} \n\n Specific Requests: {specificRequests}",
+        generation_config={
+            "thinking_level": "medium"
+        },
+        response_format={
+            "type": "text",
+            "mime_type": "application/json",
+            "schema": TripItinerary.model_json_schema()
+        },
+    )
+    if not response.output_text:
+        raise RuntimeError("Gemini returned an empty response.")
+
+    return response.output_text
+
+
 
 if __name__ == "__main__":
     # Load the family JSON data
@@ -129,7 +202,7 @@ if __name__ == "__main__":
         familyJSON = json.load(family_file)
     start_time = time.perf_counter()
 
-    trip_plan = generate_trip_plan(tripPrompts.generationPrompt, familyJSON)
+    trip_plan = generate_trip_plan(familyJSON)
     
     elapsed_time = time.perf_counter() - start_time
 
