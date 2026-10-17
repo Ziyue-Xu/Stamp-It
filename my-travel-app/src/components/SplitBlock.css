@@ -84,21 +84,26 @@
   line-height: 1.25;
 }
 
-.plan-page .split-join {
-  width: 100%;
+.plan-page .split-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-top: 10px;
-  padding: 10px 12px;
-  border: 2px solid var(--paper);
-  border-radius: 4px;
+}
+.plan-page .split-join {
+  padding: 5px 12px;
+  border: 2px solid color-mix(in srgb, var(--paper) 55%, transparent);
+  border-radius: 3px;
   background: transparent;
   color: var(--paper);
   font-family: var(--font-label);
-  font-size: 12px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 1px;
   cursor: pointer;
 }
 .plan-page .split-join:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--paper) 14%, transparent);
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
 }
 .plan-page .split-join-on {
   border-color: var(--gold);
@@ -288,8 +293,6 @@
 }
 
 .plan-page .split-remove {
-  display: block;
-  margin-top: 8px;
   padding: 5px 10px;
   border: 2px solid var(--terracotta);
   border-radius: 3px;
@@ -297,7 +300,7 @@
   color: var(--terracotta);
   font-family: var(--font-label);
   font-size: 11px;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   cursor: pointer;
 }
 .plan-page .split-remove:hover {

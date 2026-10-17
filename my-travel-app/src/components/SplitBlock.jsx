@@ -140,20 +140,22 @@ function SplitBlock({ item, me, members, onPick, onSplitOff, onRemoveMine, split
                 )}
                 {group.label && <div className="split-lane-label">{group.label}</div>}
 
-                <button
-                  className={"split-join" + (isMine ? " split-join-on" : "")}
-                  aria-pressed={isMine}
-                  disabled={isMine}
-                  onClick={() => onPick(group.id)}
-                >
-                  {isMine ? "YOU'RE IN THIS TRACK" : myLane ? "SWITCH TO THIS TRACK" : "JOIN THIS TRACK"}
-                </button>
-
-                {group.kind === "alt" && group.ownerId === me && onRemoveMine && (
-                  <button className="split-remove" onClick={() => onRemoveMine(group.id)}>
-                    REMOVE MY SPLIT
+                <div className="split-actions">
+                  <button
+                    className={"split-join" + (isMine ? " split-join-on" : "")}
+                    aria-pressed={isMine}
+                    disabled={isMine}
+                    onClick={() => onPick(group.id)}
+                  >
+                    {isMine ? "\u2713 YOU'RE IN" : myLane ? "SWITCH TO THIS" : "JOIN"}
                   </button>
-                )}
+
+                  {group.kind === "alt" && group.ownerId === me && onRemoveMine && (
+                    <button className="split-remove" onClick={() => onRemoveMine(group.id)}>
+                      REMOVE SPLIT
+                    </button>
+                  )}
+                </div>
 
                 <div className="split-who">
                   {inLane.length === 0 && <span className="split-nobody">NO ONE YET</span>}
