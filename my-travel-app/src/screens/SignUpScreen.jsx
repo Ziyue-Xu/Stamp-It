@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AVATARS, findAvatar } from "../data/avatars";
@@ -33,7 +34,9 @@ function TopRow({ onBackClick, backLabel }) {
   );
 }
 
-function SignUpScreen({ onSave, onBack, familyCode}) {
+function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
+  const isLogin = mode === "login";
+
 
   const [step, setStep] = useState("details"); // "details" or "code"
   const [name, setName] = useState("");
@@ -49,7 +52,7 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
   const trimmedEmail = email.trim();
 
 
-  const nameOk = trimmedName.length > 0 && trimmedName.length <= 80;
+  const nameOk = isLogin || (trimmedName.length > 0 && trimmedName.length <= 80);
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail);
   const codeOk = code.length === 4;
 
@@ -59,7 +62,7 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
     setBusy(true);
     setError("");
     try {
-
+      
       await startSignIn({ name: trimmedName, email: trimmedEmail });
       setStep("code");
     } catch (problem) {
@@ -67,7 +70,6 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
     }
     setBusy(false);
   }
-
 
   async function handleVerifyClick() {
     if (!codeOk || busy) return;
@@ -136,7 +138,7 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
           <p className="test-note">Test mode: the code is {FAKE_CODE}</p>
         )}
 
-    
+   
         <label className="field-label" htmlFor="code-input">
           Your code
         </label>
@@ -154,11 +156,10 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
         {error && <p className="form-error">{error}</p>}
         {notice && <p className="form-note">{notice}</p>}
 
-
+  
         <button className="link-btn" onClick={handleResendClick} disabled={busy}>
           Didn't get it? Send a new code
         </button>
-
 
         <motion.button
           className="btn-go"
@@ -177,16 +178,19 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
   return (
     <div className="signup-page">
     <main className="profile signup">
-
+    
       <TopRow onBackClick={onBack} backLabel="Go back" />
 
-      <div className="signup-step">STEP 1 OF 2</div>
-      <h1>Let's get you on board</h1>
+      <div className="signup-step">{isLogin ? "WELCOME BACK" : "STEP 1 OF 2"}</div>
+      <h1>{isLogin ? "Log in" : "Let's get you on board"}</h1>
       <p className="profile-sub">
-        We'll email you a 4-digit code. No password needed.
+        {isLogin
+          ? "Enter the email you signed up with. We'll email you a 4-digit code. No password needed."
+          : "We'll email you a 4-digit code. No password needed."}
       </p>
 
 
+      {!isLogin && (
       <section className="pass" aria-hidden="true">
         <div className="pass-label">TRAVEL PASS</div>
         <div className="pass-body">
@@ -204,20 +208,26 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
         </div>
         <div className="pass-stripe"></div>
       </section>
+      )}
 
+   
+      {!isLogin && (
+        <>
+          <label className="field-label" htmlFor="name-input">
+            Your name
+          </label>
+          <input
+            id="name-input"
+            className="name-input"
+            value={name}
+            maxLength={80}
+            placeholder="Mia"
+            onChange={(event) => setName(event.target.value)}
+          />
+        </>
+      )}
 
-      <label className="field-label" htmlFor="name-input">
-        Your name
-      </label>
-      <input
-        id="name-input"
-        className="name-input"
-        value={name}
-        maxLength={80}
-        placeholder="Mia"
-        onChange={(event) => setName(event.target.value)}
-      />
-
+  
       <label className="field-label" htmlFor="email-input">
         Your email
       </label>
@@ -231,6 +241,9 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
         onChange={(event) => setEmail(event.target.value)}
       />
 
+
+      {!isLogin && (
+      <>
       <p className="field-label">Pick your avatar</p>
       <div className="swatch-row" style={{ flexWrap: "wrap" }}>
         {AVATARS.map((choice) => (
@@ -249,10 +262,12 @@ function SignUpScreen({ onSave, onBack, familyCode}) {
           </motion.button>
         ))}
       </div>
+      </>
+      )}
 
       {error && <p className="form-error">{error}</p>}
 
-
+ 
       <motion.button
         className="btn-go"
         onClick={handleSendCodeClick}

@@ -1,10 +1,8 @@
 
-
-
 .welcome {
- 
-  --paper: #3a3d5c; /* navy background */
-  --ink: #f6ebcb; /* cream text */
+
+  --paper: #3a3d5c; 
+  --ink: #f6ebcb; 
   --ink-soft: #d8cdae;
   --terracotta: #e4603a;
   --gold: #edb04c; /* mustard */
@@ -64,12 +62,13 @@
 }
 
 .welcome-buttons {
-  margin-top: 22px;
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
+/* text blocks fade up one after another (--d is the delay) */
 .rise {
   animation: welcome-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: var(--d, 0s);
@@ -88,7 +87,7 @@
 
 .welcome .btn {
   height: auto;
-  min-height: 52px;
+  min-height: 48px;
   padding: 0 24px;
   border-radius: 6px;
   font-family: var(--font-heading);
@@ -111,7 +110,6 @@
   background: transparent;
   color: var(--ink);
 }
-
 
 .btn {
   display: flex;

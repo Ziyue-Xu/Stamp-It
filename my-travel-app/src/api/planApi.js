@@ -5,7 +5,7 @@ import { planFromBackend } from "./planFormat";
 import sampleTrip from "../data/sampleTrip.json";
 
 
-const USE_SAMPLE_PLAN = true;
+const USE_SAMPLE_PLAN = false;
 
 
 export async function generateGroupPlan(familyId, requestedByUserId, trip) {
