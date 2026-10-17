@@ -1,0 +1,18 @@
+{
+    "userProfile": {"userId": "U002", "name": "Bob", "email": "bob@example.com"},
+    "userTravelProfile": {
+        "groundTransportation": {"value": "public", "priority": "critical"},
+        "dietaryRestrictions": {"value": ["gluten-free"], "priority": "weak_link"},
+        "diningCuisine": {"value": "casual", "priority": "flexible"},
+        "tripPace": {"value": 0.4, "priority": "flexible"},
+        "activityFocus": {"value": ["culture", "nature"], "priority": "flexible"},
+        "budgetTier": {"value": 3, "priority": "critical"},
+        "morningRoutine": {"value": "late", "priority": "flexible"},
+        "interestedInShopping": {"value": true, "priority": "flexible"}, 
+        "travelStyle": {"value": 0.3, "priority": "flexible"},
+        "tourPreference": {"value": "guided", "priority": "flexible"},
+        "luggagePreference": {"value": "backpacking", "priority": "critical"},
+        "petFriendly": {"value": false, "priority": "weak_link"},
+        "activityPopularity": {"value": 1, "priority": "flexible"}
+    }
+}

@@ -1,0 +1,192 @@
+{
+    "country": "Japan",
+    "startDate": "2026-10-13",
+    "endDate": "2026-10-20",
+    "startTime": "09:00",
+    "endTime": "18:00",
+    "startCity": "Tokyo",
+    "endCity": "Kyoto",
+    "groupMembers": [
+        {
+            "name": "Alice",
+            "userId": "U001"
+        },
+        {
+            "name": "Bob",
+            "userId": "U002"
+        }
+    ],
+    "userTravelProfile": {
+        "groundTransportation": {
+            "value": "public",
+            "priority": "critical"
+        },
+        "dietaryRestrictions": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    [
+                        "vegan"
+                    ]
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    [
+                        "gluten-free"
+                    ]
+                ]
+            ],
+            "priority": "weak_link"
+        },
+        "diningCuisine": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    "local"
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    "casual"
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "tripPace": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    0.8
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    0.4
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "activityFocus": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    [
+                        "culture"
+                    ]
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    [
+                        "culture",
+                        "nature"
+                    ]
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "budgetTier": {
+            "value": "WARNING: Not everybody's budgetTier matches (2, 3). User preferences: Alice (userId: U001): 2; Bob (userId: U002): 3",
+            "priority": "critical"
+        },
+        "morningRoutine": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    "early"
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    "late"
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "interestedInShopping": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    false
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    true
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "travelStyle": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    0.7
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    0.3
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "tourPreference": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    "self-guided"
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    "guided"
+                ]
+            ],
+            "priority": "flexible"
+        },
+        "luggagePreference": {
+            "value": "backpacking",
+            "priority": "critical"
+        },
+        "petFriendly": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    false
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    false
+                ]
+            ],
+            "priority": "weak_link"
+        },
+        "activityPopularity": {
+            "value": [
+                [
+                    "Alice",
+                    "U001",
+                    0.2
+                ],
+                [
+                    "Bob",
+                    "U002",
+                    1
+                ]
+            ],
+            "priority": "flexible"
+        }
+    }
+}
