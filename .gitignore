@@ -13,3 +13,5 @@ src/router.ts
 src/modals.tsx
 .claude/launch.json
 .claude/worktrees
+AIPipeline/AIAgent/.env
+AIPipeline/AIAgent/negotiation_state.json
