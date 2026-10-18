@@ -1,156 +1,292 @@
 
+
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { findDestination } from "../data/destinations";
-import { findAvatar } from "../data/avatars";
+import { AVATARS, findAvatar } from "../data/avatars";
 import AvatarArt from "../components/AvatarArt";
-import "./ShareCodeScreen.css";
-import { formatDateRange, formatDay, formatTime } from "../data/dates";
-
-function ShareCodeScreen({ trip, onContinue }) {
-  
-  // (so the button can say "Copied!").
-  const [copied, setCopied] = useState(false);
-
-  const destination = findDestination(trip.destinationId);
-  const destinationName = destination ? destination.name : "your";
-
-  // Split "7K2Q" so each gets its own tile.
-  const letters = trip.tripCode.split("");
+import { startSignIn, verifyCode, FAKE_CODE } from "../api/authApi";
+import { USE_REAL_BACKEND } from "../api/config";
+import "./ProfileScreen.css";
+import "./SignUpScreen.css";
+import "./SignUpStamp.css";
+import Stamp from "../components/Stamp";
+import { LibertyArt, FujiArt, ChapelArt } from "../components/stampArt";
 
 
-  const canShare = typeof navigator.share === "function";
-
-
-  async function handleCopyClick() {
-    try {
-      await navigator.clipboard.writeText(trip.tripCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.log("Could not copy the code", error);
-    }
-  }
-
-
-  async function handleShareClick() {
-    try {
-      await navigator.share({
-        title: "Join my trip",
-        text: `Join my ${destinationName} trip! Code: ${trip.tripCode}`,
-      });
-    } catch (error) {
-      console.log("Share was closed", error);
-    }
-  }
-
+function TopRow({ onBackClick, backLabel }) {
   return (
-    <div className="share-page">
-    <main className="share">
-      <div className="share-chip">Your trip is ready</div>
-      <h1>{destinationName} awaits</h1>
-      {trip.startDate && trip.endDate && (
-        <div className="share-dates">
-          {formatDateRange(trip.startDate, trip.endDate)}
-        </div>
-      )}
-      <p className="share-sub">
-        Send this code to your family. They'll type it in on the join screen.
-      </p>
+    <div className="signup-top">
+      <button className="back-btn" onClick={onBackClick} aria-label={backLabel}>
+        &larr;
+      </button>
+      <div className="signup-stamps" aria-hidden="true">
+        <Stamp color="var(--gold)" w={52} h={66} rot={-5}>
+          <LibertyArt />
+        </Stamp>
+        <Stamp color="var(--ink)" fill="var(--pink)" w={52} h={66} rot={4}>
+          <FujiArt />
+        </Stamp>
+        <Stamp color="var(--ink)" fill="var(--teal)" w={52} h={66} rot={-3}>
+          <ChapelArt />
+        </Stamp>
+      </div>
+    </div>
+  );
+}
 
-  
-      <section className="ticket">
-        <div className="ticket-top">
-          <div className="ticket-label">TRIP CODE</div>
-          <div className="code-row">
-            {letters.map((letter, index) => (
-              <motion.div
-                key={index}
-                className="code-tile"
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ type: "spring", delay: 0.1 + index * 0.1 }}
-              >
-                {letter}
-              </motion.div>
-            ))}
-          </div>
-        </div>
+function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
+  const isLogin = mode === "login";
 
 
-        <div className="ticket-trip">
-          <div className="ticket-leg">
-            <div className="ticket-leg-label">ARRIVE</div>
-            <div className="ticket-leg-day">{formatDay(trip.startDate)}</div>
-            <div className="ticket-leg-time">{formatTime(trip.arrivalTime) || "No time set"}</div>
-            {trip.arrivalCity && <div className="ticket-leg-time">{trip.arrivalCity}</div>}
-          </div>
-          <div className="ticket-leg-arrow" aria-hidden="true">&rarr;</div>
-          <div className="ticket-leg">
-            <div className="ticket-leg-label">DEPART</div>
-            <div className="ticket-leg-day">{formatDay(trip.endDate)}</div>
-            <div className="ticket-leg-time">{formatTime(trip.departureTime) || "No time set"}</div>
-            {trip.departureCity && <div className="ticket-leg-time">{trip.departureCity}</div>}
-          </div>
-        </div>
+  const [step, setStep] = useState("details"); // "details" or "code"
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [avatarId, setAvatarId] = useState("taj");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(""); // red message, "" = none
+  const [notice, setNotice] = useState(""); // friendly message, "" = none
+  const [busy, setBusy] = useState(false); // true while waiting on a request
+
+  const avatar = findAvatar(avatarId);
+  const trimmedName = name.trim();
+  const trimmedEmail = email.trim();
 
 
-        <div className="ticket-tear" aria-hidden="true"></div>
+  const nameOk = isLogin || (trimmedName.length > 0 && trimmedName.length <= 80);
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail);
+  const codeOk = code.length === 4;
 
-        <div className="ticket-bottom">
-          <div className="avatar-stack">
-            {trip.members.map((member, index) => {
-              const avatar = findAvatar(member.avatar, member.userId);
-              return (
-                <div
-                  key={index}
-                  className="avatar-chip avatar-fill"
-                  style={{ background: avatar.background }}
-                  title={member.name}
-                >
-                  <AvatarArt id={avatar.id} />
-                </div>
-              );
-            })}
-          </div>
-          <div className="ticket-count">
-            {trip.members.length === 0
-              ? "You'll appear here after sign-up"
-              : trip.members.length === 1
-              ? "1 traveller"
-              : `${trip.members.length} travellers`}
-          </div>
-        </div>
-      </section>
 
-      <div className="share-actions">
+  async function handleSendCodeClick() {
+    if (!nameOk || !emailOk || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+
+      await startSignIn({ name: trimmedName, email: trimmedEmail });
+      setStep("code");
+    } catch (problem) {
+      setError(problem.message);
+    }
+    setBusy(false);
+  }
+
+
+  async function handleVerifyClick() {
+    if (!codeOk || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+
+      const account = await verifyCode({
+        name: trimmedName,
+        email: trimmedEmail,
+        code: code,
+        familyCode: familyCode,
+      });
+      onSave({
+        userId: account.userId,
+        name: account.name,
+        email: account.email,
+        avatar: avatarId,
+      });
+    } catch (problem) {
+      setError(problem.message);
+      setBusy(false);
+    }
+  }
+
+  async function handleResendClick() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+
+      await startSignIn({ name: trimmedName, email: trimmedEmail });
+      setNotice("New code sent. Check your email.");
+    } catch (problem) {
+      setError(problem.message);
+    }
+    setBusy(false);
+  }
+
+
+  if (step === "code") {
+    return (
+      <div className="signup-page">
+      <main className="profile signup">
+
+        <TopRow
+          onBackClick={() => {
+            setStep("details");
+            setCode("");
+            setError("");
+            setNotice("");
+          }}
+          backLabel="Back to details"
+        />
+
+        <div className="signup-step">STEP 2 OF 2</div>
+        <h1>Check your email</h1>
+        <p className="profile-sub">
+          We sent a 4-digit code to <strong>{trimmedEmail}</strong>. It expires in 5 minutes.
+        </p>
+
+
+        {!USE_REAL_BACKEND && (
+          <p className="test-note">Test mode: the code is {FAKE_CODE}</p>
+        )}
+
+
+        <label className="field-label" htmlFor="code-input">
+          Your code
+        </label>
+        <input
+          id="code-input"
+          className="code-input-big"
+          value={code}
+          maxLength={4}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="0000"
+          onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+        />
+
+        {error && <p className="form-error">{error}</p>}
+        {notice && <p className="form-note">{notice}</p>}
+
+
+        <button className="link-btn" onClick={handleResendClick} disabled={busy}>
+          Didn't get it? Send a new code
+        </button>
+
+
         <motion.button
-          className="btn-outline"
-          onClick={handleCopyClick}
+          className="btn-go"
+          onClick={handleVerifyClick}
+          disabled={!codeOk || busy}
           whileTap={{ scale: 0.96 }}
         >
-          {copied ? "Copied!" : "Copy code"}
+          {busy ? "Checking..." : "Verify"}
         </motion.button>
-
-
-        {canShare && (
-          <motion.button
-            className="btn-outline"
-            onClick={handleShareClick}
-            whileTap={{ scale: 0.96 }}
-          >
-            Share
-          </motion.button>
-        )}
+      </main>
       </div>
+    );
+  }
 
+  // ============ STEP 1: DETAILS ============
+  return (
+    <div className="signup-page">
+    <main className="profile signup">
+      {/* BUTTON: back arrow. WHEN CLICKED: onBack() -> App.jsx goes
+          back to Welcome. DATA SAVED: none. */}
+      <TopRow onBackClick={onBack} backLabel="Go back" />
 
-      <motion.button className="btn-go" onClick={onContinue} whileTap={{ scale: 0.96 }}>
-        Continue
+      <div className="signup-step">{isLogin ? "WELCOME BACK" : "STEP 1 OF 2"}</div>
+      <h1>{isLogin ? "Log in" : "Let's get you on board"}</h1>
+      <p className="profile-sub">
+        {isLogin
+          ? "Enter the email you signed up with. We'll email you a 4-digit code. No password needed."
+          : "We'll email you a 4-digit code. No password needed."}
+      </p>
+
+      {/* Live preview card (look only, nothing saved). Not shown when logging in. */}
+      {!isLogin && (
+      <section className="pass" aria-hidden="true">
+        <div className="pass-label">TRAVEL PASS</div>
+        <div className="pass-body">
+          <motion.div
+            key={avatar.id}
+            className="pass-avatar avatar-fill"
+            style={{ background: avatar.background }}
+            initial={{ scale: 0.7 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 14 }}
+          >
+            <AvatarArt id={avatar.id} />
+          </motion.div>
+          <div className="pass-name">{trimmedName || "Your name"}</div>
+        </div>
+        <div className="pass-stripe"></div>
+      </section>
+      )}
+
+      {/* INPUT: name. DATA SAVED: none until "Send me a code".
+          Not shown when logging in. */}
+      {!isLogin && (
+        <>
+          <label className="field-label" htmlFor="name-input">
+            Your name
+          </label>
+          <input
+            id="name-input"
+            className="name-input"
+            value={name}
+            maxLength={80}
+            placeholder="Mia"
+            onChange={(event) => setName(event.target.value)}
+          />
+        </>
+      )}
+
+      {/* INPUT: email. DATA SAVED: none until "Send me a code". */}
+      <label className="field-label" htmlFor="email-input">
+        Your email
+      </label>
+      <input
+        id="email-input"
+        className="name-input"
+        type="email"
+        value={email}
+        placeholder="mia@example.com"
+        autoComplete="email"
+        onChange={(event) => setEmail(event.target.value)}
+      />
+
+      {/* BUTTONS: avatar pictures. WHEN CLICKED: remembers the avatar id.
+          DATA SAVED: browser only (the backend has no avatar field).
+          Not shown when logging in (they can change it on the Account screen). */}
+      {!isLogin && (
+      <>
+      <p className="field-label">Pick your avatar</p>
+      <div className="swatch-row" style={{ flexWrap: "wrap" }}>
+        {AVATARS.map((choice) => (
+          <motion.button
+            key={choice.id}
+            className={
+              "swatch avatar-fill" + (choice.id === avatarId ? " swatch-selected" : "")
+            }
+            style={{ background: choice.background, width: 54, height: 54 }}
+            aria-label={choice.label}
+            aria-pressed={choice.id === avatarId}
+            onClick={() => setAvatarId(choice.id)}
+            whileTap={{ scale: 0.9 }}
+          >
+            <AvatarArt id={choice.id} />
+          </motion.button>
+        ))}
+      </div>
+      </>
+      )}
+
+      {error && <p className="form-error">{error}</p>}
+
+      {/* BUTTON: "Send me a code"
+          WHEN CLICKED: handleSendCodeClick() (above)
+          DATA SENT: { name, email } to the backend
+          Grayed out until the name and email look valid. */}
+      <motion.button
+        className="btn-go"
+        onClick={handleSendCodeClick}
+        disabled={!nameOk || !emailOk || busy}
+        whileTap={{ scale: 0.96 }}
+      >
+        {busy ? "Sending..." : "Send me a code"}
       </motion.button>
     </main>
     </div>
   );
 }
 
-export default ShareCodeScreen;
+export default SignUpScreen;

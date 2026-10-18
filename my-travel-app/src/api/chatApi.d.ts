@@ -17,13 +17,20 @@ export interface NegotiationRequest {
 export interface NegotiationConflict {
   preference: string
   resolution: 'negotiate' | 'accommodate' | 'split' | 'review'
-  users: Array<{ userId: string; name: string; value: unknown }>
 }
+
+export function sendChatAnswer(input: {
+  familyId: string
+  userId: string
+  answer: string | null
+  history: Array<{ role: 'user' | 'assistant'; text: string }>
+}): Promise<{ reply: string; expectsAnswer: boolean }>
 
 export function getNegotiationStatus(familyId: string): Promise<{
   familyCode: string
   conflicts: NegotiationConflict[]
   requests: NegotiationRequest[]
+  negotiatedValues: Record<string, Record<string, unknown>>
   resolvedPreferences: Record<string, string>
   balanced: boolean
   questionLimitReached: boolean
@@ -33,18 +40,7 @@ export function getNegotiationStatus(familyId: string): Promise<{
   sessionQuestionLimit: number
 }>
 
-export function startNegotiationSession(familyId: string): Promise<{
-  familyCode: string
-  sessionStatus: 'active' | 'completed' | 'limit_reached'
-  sessionId: string | null
-  sessionQuestionCount: number
-  sessionQuestionLimit: number
-  conflicts: NegotiationConflict[]
-  requests: NegotiationRequest[]
-  resolvedPreferences: Record<string, string>
-  balanced: boolean
-  questionLimitReached: boolean
-}>
+export function startNegotiationSession(familyId: string): ReturnType<typeof getNegotiationStatus>
 
 export function createNegotiationRequest(input: {
   familyId: string

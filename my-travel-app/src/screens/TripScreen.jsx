@@ -201,7 +201,7 @@ function TripScreen({
                 {hasPlan
                   ? "Your group's itinerary is ready."
                   : isCreator
-                  ? "Use the chat bubble to work through preference conflicts before building the group itinerary."
+                  ? "When everyone has answered, build the plan for your group."
                   : `Only ${creatorName} can generate the itinerary. It will appear here once it's ready.`}
               </div>
             </div>
