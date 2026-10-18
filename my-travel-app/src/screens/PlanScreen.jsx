@@ -299,9 +299,11 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
     onPlanChange(newPlan);
     setSaveState("saving");
     try {
-      const where = onSavePlan
+      const saveResult = onSavePlan
         ? await onSavePlan(newPlan)
         : await savePlan(trip.familyId, profile.userId, newPlan);
+      if (saveResult?.plan) onPlanChange(saveResult.plan);
+      const where = typeof saveResult === "string" ? saveResult : saveResult?.where;
       setSaveState(where === "device" ? "device" : "saved");
     } catch (problem) {
       setSaveState("failed");
@@ -354,6 +356,7 @@ function PlanScreen({ plan, trip, profile, onPlanChange, onSavePlan, onRegenerat
         userId: profile.userId,
         stop,
         day,
+        plan,
       });
       onPlanChange(updatedPlan);
       setSaveState("saved");

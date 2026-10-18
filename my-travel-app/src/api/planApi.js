@@ -18,6 +18,29 @@ function writeSavedPlan(familyId, plan) {
   }
 }
 
+function removedGroups(previous, next, userId) {
+  const retained = new Set(
+    (next.days || []).flatMap((day) =>
+      (day.items || []).flatMap((item) =>
+        item.type === "split" ? (item.groups || []).map((group) => group.id) : []
+      )
+    )
+  );
+  return (previous?.days || []).flatMap((day) =>
+    (day.items || []).flatMap((item) =>
+      item.type === "split"
+        ? (item.groups || [])
+            .filter((group) => group.ownerId === userId && !retained.has(group.id))
+            .map((group) => group.id)
+        : []
+    )
+  );
+}
+
+function sharedPlan(plan) {
+  return plan ? { ...plan, serverSynced: true } : plan;
+}
+
 function readSavedPlan(familyId) {
   try {
     const text = localStorage.getItem(SAVED_PLAN_KEY + familyId);
@@ -28,17 +51,35 @@ function readSavedPlan(familyId) {
 }
 
 export async function getExistingPlan(familyId, trip) {
-  if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`
-      );
-      if (!response.ok) return { plan: null };
-      const data = await response.json();
-      return { plan: planFromBackend(data, membersOf(trip)) };
-    } catch (problem) {
-      return { plan: null };
+  let response;
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`
+    );
+  } catch (problem) {
+    if (
+      (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) ||
+      readSavedPlan(familyId)?.serverSynced
+    ) {
+      throw new Error("Could not load the shared itinerary. Please try again.");
     }
+    return { plan: readSavedPlan(familyId) };
+  }
+  if (response.ok) {
+    const data = await response.json();
+    const plan =
+      data.format === "travel-app"
+        ? data.plan
+        : planFromBackend(data, membersOf(trip));
+    const synchronizedPlan = sharedPlan(plan);
+    writeSavedPlan(familyId, synchronizedPlan);
+    return { plan: synchronizedPlan };
+  }
+  if (response.status !== 404) {
+    throw new Error("Could not load the shared itinerary. Please try again.");
+  }
+  if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
+    return { plan: null };
   }
   return { plan: readSavedPlan(familyId) };
 }
@@ -69,13 +110,24 @@ export async function generateGroupPlan(familyId, requestedByUserId, trip) {
 }
 
 export async function savePlan(familyId, userId, plan) {
-  if (USE_REAL_BACKEND && !USE_SAMPLE_PLAN) {
+  if ((USE_REAL_BACKEND && !USE_SAMPLE_PLAN) || plan.serverSynced) {
+    const sharedPlanData = { ...plan };
+    delete sharedPlanData.serverSynced;
+    const removedSplitGroupIds = removedGroups(
+      readSavedPlan(familyId),
+      plan,
+      userId
+    );
     const response = await fetch(
       `${API_BASE_URL}/families/${encodeURIComponent(familyId)}/plan`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedBy: userId, plan }),
+        body: JSON.stringify({
+          updatedBy: userId,
+          plan: sharedPlanData,
+          removedSplitGroupIds,
+        }),
       }
     );
     if (response.status === 403) {
@@ -84,7 +136,10 @@ export async function savePlan(familyId, userId, plan) {
     if (!response.ok) {
       throw new Error("Could not save your changes. Please try again.");
     }
-    return "server";
+    const result = await response.json();
+    const synchronizedPlan = sharedPlan(result.plan || sharedPlanData);
+    writeSavedPlan(familyId, synchronizedPlan);
+    return { where: "server", plan: synchronizedPlan };
   }
 
   try {
@@ -110,8 +165,10 @@ export function removeSavedPlan(familyId) {
   }
 }
 
-export async function requestAlternative({ familyId, userId, stop, day }) {
+export async function requestAlternative({ familyId, userId, stop, day, plan }) {
   const familyPath = `/families/${encodeURIComponent(familyId)}`;
+  const sharedPlanData = { ...(plan || {}) };
+  delete sharedPlanData.serverSynced;
   const startResponse = await fetch(`${familyPath}/plan/splits`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,6 +176,7 @@ export async function requestAlternative({ familyId, userId, stop, day }) {
       requestedBy: userId,
       dayNumber: day.dayNumber,
       itemId: stop.id,
+      plan: sharedPlanData,
     }),
   });
   if (startResponse.status === 403) {
@@ -148,7 +206,9 @@ export async function requestAlternative({ familyId, userId, stop, day }) {
     if (data.format !== "travel-app" || !data.plan || !Array.isArray(data.plan.days)) {
       throw new Error("The split service returned an invalid itinerary.");
     }
-    return data.plan;
+    const plan = sharedPlan(data.plan);
+    writeSavedPlan(familyId, plan);
+    return plan;
   }
 
   throw new Error("Split generation is taking longer than expected. Please try again.");

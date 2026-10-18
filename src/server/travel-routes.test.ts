@@ -1094,6 +1094,10 @@ describe('Auth0 travel routes', () => {
             userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
             userTravelProfile: {},
           },
+          {
+            userProfile: { userId: 'auth0|friend', name: 'Friend', email: 'friend@example.com' },
+            userTravelProfile: {},
+          },
         ],
       }),
     )
@@ -1109,28 +1113,21 @@ describe('Auth0 travel routes', () => {
       tips: [],
       cost: null,
     }
-    objects.set(
-      `travel-plans/${familyCode}`,
-      JSON.stringify({
-        familyCode,
-        format: 'travel-app',
-        plan: {
-          title: 'Japan plans',
-          subtitle: 'Tokyo',
-          startDate: '2027-03-14',
-          endDate: '2027-03-14',
-          days: [
-            {
-              dayNumber: 1,
-              date: '2027-03-14',
-              city: 'Tokyo',
-              theme: 'Culture',
-              items: [sourceActivity],
-            },
-          ],
+    const submittedPlan = {
+      title: 'Japan plans',
+      subtitle: 'Tokyo',
+      startDate: '2027-03-14',
+      endDate: '2027-03-14',
+      days: [
+        {
+          dayNumber: 1,
+          date: '2027-03-14',
+          city: 'Tokyo',
+          theme: 'Culture',
+          items: [sourceActivity],
         },
-      }),
-    )
+      ],
+    }
     vi.stubGlobal(
       'fetch',
       vi
@@ -1166,7 +1163,7 @@ describe('Auth0 travel routes', () => {
                       {
                         id: 'member-branch',
                         label: 'Alternative',
-                        traveler_ids: [memberId],
+                        traveler_ids: [memberId, 'auth0|friend'],
                         timeline: [
                           {
                             id: 'alternative-1',
@@ -1201,7 +1198,12 @@ describe('Auth0 travel routes', () => {
         Cookie: sessionCookie,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ requestedBy: memberId, dayNumber: 1, itemId: sourceActivity.id }),
+      body: JSON.stringify({
+        requestedBy: memberId,
+        dayNumber: 1,
+        itemId: sourceActivity.id,
+        plan: submittedPlan,
+      }),
     })
     const { interactionToken } = (await startResponse.json()) as { interactionToken: string }
     const pollResponse = await request(
@@ -1228,11 +1230,31 @@ describe('Auth0 travel routes', () => {
         {
           id: `alt-${encodeURIComponent(memberId)}`,
           ownerId: memberId,
+          members: [{ userId: memberId, name: 'Member' }],
           items: [expect.objectContaining({ title: 'Visit a garden' })],
         },
       ],
     })
     expect(polled.plan).toEqual(stored.plan)
+
+    const staleSaveResponse = await request(`/families/${familyCode}/plan`, {
+      method: 'PUT',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: sessionCookie,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ updatedBy: memberId, plan: submittedPlan }),
+    })
+    const afterStaleSave = JSON.parse(objects.get(`travel-plans/${familyCode}`) ?? '{}') as {
+      plan: { days: Array<{ items: Array<Record<string, unknown>> }> }
+    }
+
+    expect(staleSaveResponse.status).toBe(200)
+    expect(afterStaleSave.plan.days[0]?.items[0]).toMatchObject({
+      id: `split-${sourceActivity.id}`,
+      picks: { [memberId]: `alt-${encodeURIComponent(memberId)}` },
+    })
   })
 
   it('negotiates independently in either family collection and only the target can accept', async () => {
