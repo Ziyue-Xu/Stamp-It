@@ -5,22 +5,37 @@ import "./ChatWidget.css";
 function ChatIcon() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true">
-      <path
-        d="M10 14h44a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H30l-12 10V46h-8a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z"
+      <rect
+        x="6"
+        y="14"
+        width="52"
+        height="38"
+        rx="5"
         fill="var(--ink)"
         stroke="var(--paper)"
         strokeWidth="3.5"
         strokeLinejoin="round"
       />
-      <circle cx="21" cy="30" r="3.2" fill="var(--paper)" />
-      <circle cx="32" cy="30" r="3.2" fill="var(--paper)" />
-      <circle cx="43" cy="30" r="3.2" fill="var(--paper)" />
+      <path
+        d="M8 18l24 18 24-18"
+        fill="none"
+        stroke="var(--paper)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
+function introText(profile) {
+  const first = profile && profile.name ? profile.name.split(" ")[0] : "";
+  const hello = first ? `Hi there!` : "Hi there!";
+  return `${hello} I'm Stampy, your trip assistant. I'll ask a few quick yes or no questions to help your group resolve conflicts.`;
+}
+
 function toHistory(messages) {
-  return messages.map((m) => ({
+  return messages.filter((m) => !m.local).map((m) => ({
     role: m.from === "me" ? "user" : "assistant",
     text: m.text,
   }));
@@ -29,7 +44,9 @@ function toHistory(messages) {
 function ChatWidget({ trip, profile }) {
   const [open, setOpen] = useState(false);
   const [started, setStarted] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => [
+    { from: "agent", text: introText(profile), local: true },
+  ]);
   const [expectsAnswer, setExpectsAnswer] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -71,7 +88,7 @@ function ChatWidget({ trip, profile }) {
     const next = !open;
     setOpen(next);
     if (next && !started && !sending) {
-      send(null, []);
+      send(null, messages);
     }
   }
 
@@ -85,7 +102,7 @@ function ChatWidget({ trip, profile }) {
       {open && (
         <section className="chat-panel" aria-label="Trip assistant">
           <header className="chat-head">
-            <span className="chat-title">Trip assistant</span>
+            <span className="chat-title">Stampy</span>
             <button
               type="button"
               className="chat-close"
@@ -109,7 +126,7 @@ function ChatWidget({ trip, profile }) {
             )}
             {error && <p className="chat-error">{error}</p>}
             {error && !started && !sending && (
-              <button type="button" className="chat-retry" onClick={() => send(null, [])}>
+              <button type="button" className="chat-retry" onClick={() => send(null, messages)}>
                 Try again
               </button>
             )}
