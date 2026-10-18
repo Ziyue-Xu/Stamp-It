@@ -395,16 +395,10 @@ export function reconcileNegotiationState(
 export function validateProposedPreference(preference: string, value: unknown): void {
   if (preference === 'tripPace' || preference === 'travelStyle' || preference === 'activityPopularity') {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
-      const label =
-        preference === 'tripPace'
-          ? 'Daily pace'
-          : preference === 'travelStyle'
-            ? 'Travel style'
-            : 'Attraction popularity'
-      throw new NegotiationError(`${label} must be between the lowest and highest settings.`, 502)
+      throw new NegotiationError(`${preference} must be a number between 0 and 1.`, 502)
     }
   } else if (preference === 'budgetTier' && value !== 1 && value !== 2 && value !== 3) {
-    throw new NegotiationError('Budget must be set to a low, moderate, or high level.', 502)
+    throw new NegotiationError('budgetTier must be 1, 2, or 3.', 502)
   }
 }
 

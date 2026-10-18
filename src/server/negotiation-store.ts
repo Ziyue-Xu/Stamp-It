@@ -386,7 +386,9 @@ function findConflict(
   preference: string,
 ): NegotiationConflict {
   const conflict = conflicts.find((item) => item.preference === preference)
-  if (!conflict) throw new NegotiationError('No active travel preference conflict was found.', 409)
+  if (!conflict) {
+    throw new NegotiationError(`No conflict found for preference: ${preference}.`, 409)
+  }
   return conflict
 }
 
@@ -489,12 +491,12 @@ async function createNegotiationRequestLocked(
   const conflict = findConflict(conflicts, input.preference)
   if (family.state.resolvedPreferences[input.preference]) {
     throw new NegotiationError(
-      'This preference has already been handled in this balancing session.',
+      `The agent has already resolved ${input.preference} for this round of balancing.`,
       409,
     )
   }
   if (negotiationLimits.nonNegotiable.has(conflict.preference)) {
-    throw new NegotiationError('This preference cannot be changed through suggestions.', 409)
+    throw new NegotiationError(`${conflict.preference} is protected and cannot be negotiated.`, 409)
   }
   if (conflict.resolution !== 'negotiate') {
     throw new NegotiationError(
@@ -519,7 +521,7 @@ async function createNegotiationRequestLocked(
     )?.userId
   if (!targetUserId || targetUserId === input.requesterUserId) {
     throw new NegotiationError(
-      'There are no more travelers to ask about this preference.',
+      `There are no unasked travelers left for ${input.preference}.`,
       409,
     )
   }
@@ -528,7 +530,7 @@ async function createNegotiationRequestLocked(
   }
   if (hasAskedPreferenceOfUser(family.state, input.preference, targetUserId)) {
     throw new NegotiationError(
-      'This traveler has already been asked about this preference.',
+      `The agent has already asked ${targetUserId} about ${input.preference}.`,
       409,
     )
   }
@@ -776,7 +778,7 @@ async function respondToNegotiationRequestLocked(
     throw new NegotiationError('Only the requested user can answer this negotiation request.', 403)
   }
   if (negotiationLimits.nonNegotiable.has(request.preference)) {
-    throw new NegotiationError('This preference cannot be changed through suggestions.', 409)
+    throw new NegotiationError(`${request.preference} is protected and cannot be changed.`, 409)
   }
   if (request.status !== 'pending') {
     throw new NegotiationError(`Request ${request.requestId} is already ${request.status}.`, 409)

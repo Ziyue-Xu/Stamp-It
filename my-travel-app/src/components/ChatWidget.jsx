@@ -7,32 +7,6 @@ import {
 } from "../api/chatApi";
 import "./ChatWidget.css";
 
-const PREFERENCE_LABELS = {
-  activityFocus: "activities",
-  activityPopularity: "attraction popularity",
-  attractionPopularity: "attraction popularity",
-  budgetTier: "budget",
-  dietaryRestrictions: "dietary needs",
-  diningCuisine: "dining style",
-  groundTransportation: "getting around",
-  interestedInShopping: "shopping",
-  luggagePreference: "luggage",
-  morningRoutine: "morning start",
-  petFriendly: "pet-friendly places",
-  tripPace: "daily pace",
-  tourPreference: "guided tours",
-  travelStyle: "travel style",
-};
-
-function preferenceLabel(preference) {
-  if (PREFERENCE_LABELS[preference]) return PREFERENCE_LABELS[preference];
-  const words = String(preference)
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 function ChatIcon() {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true">
@@ -51,15 +25,10 @@ function ChatIcon() {
 }
 
 function describeValue(value) {
-  if (value === null || value === undefined) return "no preference";
-  if (Array.isArray(value)) return value.map(describeValue).join(", ");
+  if (Array.isArray(value)) return value.join(", ");
   if (value && typeof value === "object") {
     if ("value" in value) return describeValue(value.value);
-    return Object.values(value).map(describeValue).join(", ");
-  }
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string") {
-    return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ");
+    return JSON.stringify(value);
   }
   return String(value);
 }
@@ -67,7 +36,7 @@ function describeValue(value) {
 function questionForRequest(request) {
   return [
     request.question,
-    `Suggested change to your ${preferenceLabel(request.preference)}: ${describeValue(request.currentValue)} → ${describeValue(request.proposedValue)}.`,
+    `Suggested change: ${describeValue(request.currentValue)} → ${describeValue(request.proposedValue)}.`,
   ].join("\n\n");
 }
 
@@ -89,6 +58,7 @@ function ChatWidgetSession({ trip, profile }) {
   const loadingRef = useRef(false);
   const respondingRef = useRef(false);
   const seenMessagesRef = useRef(new Set());
+  const requestStatusesRef = useRef(new Map());
   const attemptedTargetsRef = useRef(new Set());
   const familyId = trip?.familyId;
   const userId = profile?.userId;
@@ -103,13 +73,31 @@ function ChatWidgetSession({ trip, profile }) {
     (status) => {
       setSessionStatus(status.sessionStatus || "awaiting_consent");
       const requests = Array.isArray(status.requests) ? status.requests : [];
+      for (const request of requests) {
+        const previousStatus = requestStatusesRef.current.get(request.requestId);
+        if (
+          previousStatus === "pending" &&
+          request.status !== "pending" &&
+          request.requesterUserId === userId
+        ) {
+          const answer =
+            request.status === "accepted" ? "accepted" : "declined";
+          addAgentMessage(
+            `answered:${request.requestId}`,
+            `${request.targetName} ${answer} the suggested change. The agent is checking whether another compromise could help.`
+          );
+        }
+        requestStatusesRef.current.set(request.requestId, request.status);
+      }
+
       const sessionRequests = status.sessionId
         ? requests.filter((request) => request.sessionId === status.sessionId)
         : [];
-      const incoming = sessionRequests.find(
+      const pending = sessionRequests.filter(
         (request) =>
-          request.status === "pending" && request.targetUserId === userId
+          request.status === "pending"
       );
+      const incoming = pending.find((request) => request.targetUserId === userId);
       if (incoming) {
         activeRequestRef.current = incoming;
         setActiveRequest(incoming);
@@ -122,6 +110,39 @@ function ChatWidgetSession({ trip, profile }) {
 
       activeRequestRef.current = null;
       setActiveRequest(null);
+
+      const outgoing = pending.find(
+        (request) => request.requesterUserId === userId
+      );
+      if (outgoing) {
+        addAgentMessage(
+          `waiting:${outgoing.requestId}`,
+          `I asked ${outgoing.targetName}: “${outgoing.question}” I’ll let you know when they respond.`
+        );
+        return;
+      }
+
+      if (pending.length > 0) {
+        addAgentMessage(
+          `other-pending:${pending[0].requestId}`,
+          "A family member is considering a preference change. I’ll update this chat when there’s a response."
+        );
+        return;
+      }
+
+      if (sessionRequests.length > 0) {
+        const latest = sessionRequests[sessionRequests.length - 1];
+        const response =
+          latest.status === "accepted"
+            ? "The last suggested change was accepted."
+            : latest.status === "rejected"
+              ? "The last suggested change was declined."
+              : "The last request is no longer active.";
+        addAgentMessage(
+          `latest:${latest.requestId}:${latest.status}`,
+          `${response} I’m checking whether another compromise could help.`
+        );
+      }
     },
     [addAgentMessage, userId]
   );
@@ -162,7 +183,7 @@ function ChatWidgetSession({ trip, profile }) {
           if (conflict.resolution === "split") {
             addAgentMessage(
               `compromise:${conflict.preference}`,
-              `For ${preferenceLabel(conflict.preference)}, I’ll balance both preferences in the itinerary rather than ask anyone to change their answer.`
+              `For ${conflict.preference}, I’ll balance both preferences in the itinerary rather than ask anyone to change their answer.`
             );
           }
         }
@@ -198,7 +219,7 @@ function ChatWidgetSession({ trip, profile }) {
         if (!nextQuestion) {
           addAgentMessage(
             "waiting-for-other-travelers",
-            "I’ll let you know when I have a suggestion for you."
+            "I don’t have another eligible traveler to ask right now. I’ll check again as the group continues."
           );
           return;
         }
@@ -214,37 +235,40 @@ function ChatWidgetSession({ trip, profile }) {
         });
         if (created.status === "created" || created.status === "existing") {
           const request = created.request;
-          if (request.targetUserId === userId) {
-            activeRequestRef.current = request;
-            setActiveRequest(request);
-            addAgentMessage(
-              `question:${request.requestId}`,
-              questionForRequest(request)
-            );
-          }
+          activeRequestRef.current = request;
+          setActiveRequest(request);
+          requestStatusesRef.current.set(request.requestId, request.status);
+          addAgentMessage(
+            `question:${request.requestId}`,
+            questionForRequest(request)
+          );
         } else if (created.status === "recommended") {
-          const recommendation = {
-            recommend_split: "We can split the day to make room for both preferences.",
-            accommodate: "I recommend honoring the more important preference.",
-            review: "This one needs a closer look before we can suggest a change.",
-          }[created.action] || "I found another way to balance this preference.";
           addAgentMessage(
             `recommendation:${conflict.preference}`,
-            `For ${preferenceLabel(conflict.preference)}, ${recommendation} ${created.rationale}`
+            `For ${conflict.preference}, I recommend ${created.action}. ${created.rationale}`
           );
         } else if (created.status === "generating") {
-          return;
+          addAgentMessage(
+            `generating:${created.requestId}`,
+            "I’m preparing a preference question. Please reopen the chat in a moment."
+          );
         } else {
           throw new Error("The negotiation service returned an unknown result.");
         }
       } catch (problem) {
-        if (startingPreference && problem.status !== 409) {
+        if (
+          startingPreference &&
+          !(problem.status === 409 && /already pending/iu.test(problem.message))
+        ) {
           attemptedTargetsRef.current.delete(startingPreference);
         }
-        if (problem.status === 409) {
+        if (problem.status === 409 && /already pending/iu.test(problem.message)) {
           try {
             const latest = await getNegotiationStatus(familyId);
             applyStatus(latest);
+            if (!(latest.requests || []).some((request) => request.status === "pending")) {
+              setError(problem.message);
+            }
           } catch (refreshError) {
             setError(refreshError.message);
           }
@@ -321,18 +345,19 @@ function ChatWidgetSession({ trip, profile }) {
     setSending(true);
     setError("");
     try {
-      await respondToNegotiationRequest({
+      const result = await respondToNegotiationRequest({
         familyId,
         requestId: request.requestId,
         answer,
       });
+      requestStatusesRef.current.set(request.requestId, result.request.status);
       setMessages((current) => [
         ...current,
         {
           from: "agent",
           text:
             answer === "accept"
-                ? "Thanks, I recorded your agreement and updated that part of your travel preferences."
+              ? "Thanks, I recorded your agreement and updated your preference."
               : "Thanks, I recorded your response. I’ll look for another compromise.",
         },
       ]);
