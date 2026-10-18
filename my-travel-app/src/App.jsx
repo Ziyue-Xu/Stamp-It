@@ -346,7 +346,11 @@ function App() {
       )}
 
       {screen === "share" && trip && (
-        <ShareCodeScreen trip={trip} onContinue={handleShareContinue} />
+        <ShareCodeScreen
+          trip={trip}
+          onContinue={handleShareContinue}
+          onReload={handleReloadTrip}
+        />
       )}
 
       {screen === "join" && (
