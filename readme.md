@@ -1,13 +1,12 @@
-# Travel Together
+# Stampit!
 
-Travel Together helps a group plan a trip around one shared destination and
-dates, while making room for each traveller's preferences. The app lets an
-organizer create a trip and share a short join code, gathers each member's
-travel preferences, and builds an editable, AI-generated itinerary for the
-group.
+Stampit! helps a group plan a trip around one shared destination and dates,
+while making room for each traveller's preferences. Create a trip, invite your
+group, collect everyone's travel preferences, and build an editable,
+AI-generated itinerary together.
 
-The main experience is served at **`/travel`**. The root route redirects there;
-the configured production host is `swamphack.app.space`.
+The app is served at **`/travel`**. The root route redirects there. Its default
+DeepSpace host is `swamphack.app.space`; `stamp-it.us` is the custom domain.
 
 ## What you can do
 
@@ -36,7 +35,7 @@ or availability guarantees.
 
 ### Sign-in and trip membership
 
-Travel Together uses **Auth0 email passwordless sign-in**. Auth0 sends a
+Stampit! uses **Auth0 email passwordless sign-in**. Auth0 sends a
 one-time code to the user's email address; the Worker redeems it and verifies
 that the email is confirmed before creating a signed application session. The
 session is a 30-day, `HttpOnly`, `SameSite=Lax` cookie. It is separate from
@@ -92,20 +91,19 @@ require a same-origin request.
 
 ## Application structure
 
-This repository combines the Travel Together experience with a DeepSpace app
-runtime:
+This repository combines the Stampit! experience with a DeepSpace app runtime:
 
 - [`worker.ts`](./worker.ts) assembles the Cloudflare Worker, Durable Objects,
   API and WebSocket routes, static assets, and the owner-only local-agent tool
   routes.
 - [`src/server/travel-routes.ts`](./src/server/travel-routes.ts) implements
-  Travel Together's Auth0 session flow, profiles, trips, memberships,
+  Stampit!'s Auth0 session flow, profiles, trips, memberships,
   preferences, itinerary storage, and planner polling.
 - [`src/server/trip-planner.ts`](./src/server/trip-planner.ts) calls Gemini
   with Google Maps grounding and validates the planner interaction response.
 - [`src/schemas/travel-schema.ts`](./src/schemas/travel-schema.ts) defines the
   private `travel-users`, `travel-families`, and `travel-plans` collections.
-- [`src/travel-app.jsx`](./src/travel-app.jsx) is the Travel Together app
+- [`src/travel-app.jsx`](./src/travel-app.jsx) is the Stampit! app
   controller. It composes the UI screens and visual assets in
   [`my-travel-app/src/`](./my-travel-app/src/). The root app imports these
   screens and selected data/API helpers; the nested `my-travel-app/src/App.jsx`
@@ -115,7 +113,7 @@ runtime:
 - [`src/pages/`](./src/pages/) contains the separate generated DeepSpace
   application shell, including `/home`, `/settings`, and
   `/family-preferences`. These scaffold routes use DeepSpace platform auth;
-  they are distinct from the Auth0-backed Travel Together experience. The
+  they are distinct from the Auth0-backed Stampit! experience. The
   `/home` page is still a scaffold placeholder.
 - [`AIPipeline/`](./AIPipeline/) and [`AccCreationBackend/`](./AccCreationBackend/)
   contain earlier Python experiments and templates. The deployed travel
