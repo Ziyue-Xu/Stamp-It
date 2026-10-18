@@ -73,10 +73,10 @@ export function prerender(): Plugin {
     configResolved(resolved) {
       config = resolved
     },
-    async closeBundle() {
+    async writeBundle() {
       if (config.command !== 'build' || ran || process.env[PASS_ENV]) return
       // The Cloudflare plugin builds the worker environments first and the
-      // client last, each with its own closeBundle. Only the client's output
+      // client last, each with its own writeBundle. Only the client's output
       // has the template, so run on that environment alone (matched by its
       // output dir, the thing this plugin actually depends on).
       const clientDir = join(config.root, 'dist', 'client')
