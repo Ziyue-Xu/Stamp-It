@@ -1603,6 +1603,42 @@ describe('Auth0 travel routes', () => {
       value: 0.1,
       priority: 'flexible',
     })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          output_text: JSON.stringify({
+            action: 'ask_user',
+            target_participant: 'traveler_2',
+            proposed_value: 0.5,
+            question: 'Would a more exploratory trip feel right?',
+            rationale: 'A middle ground may work for the group.',
+          }),
+        }),
+      ),
+    )
+    const newSessionQuestion = await request(
+      '/travel/families/1234/negotiations/requests',
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'question-after-restart',
+        },
+        body: JSON.stringify({ preference: 'travelStyle', targetUserId: memberId }),
+      },
+    )
+    expect(newSessionQuestion.status).toBe(201)
+    const newSessionStatus = await request(
+      '/travel/families/1234/negotiations/status',
+      { headers: { Cookie: creatorCookie } },
+    )
+    expect(await newSessionStatus.json()).toMatchObject({
+      sessionStatus: 'active',
+      sessionQuestionCount: 1,
+    })
   })
 
   it('queues and runs bounded follow-up negotiation after a rejection', async () => {
@@ -1741,7 +1777,7 @@ describe('Auth0 travel routes', () => {
     )
     expect(repeatedRequest.status).toBe(409)
     expect(await repeatedRequest.json()).toMatchObject({
-      error: `The agent has already asked ${memberId} about tripPace.`,
+      error: 'This traveler has already been asked about this preference.',
     })
     expect(geminiFetch).toHaveBeenCalledOnce()
 
@@ -1781,7 +1817,7 @@ describe('Auth0 travel routes', () => {
     )
     expect(duplicatePairResponse.status).toBe(409)
     expect(await duplicatePairResponse.json()).toMatchObject({
-      error: `The agent has already asked ${creatorId} about tripPace.`,
+      error: 'This traveler has already been asked about this preference.',
     })
     expect(followupGeminiFetch).toHaveBeenCalledOnce()
     const storedFamily = JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}') as {

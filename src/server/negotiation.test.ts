@@ -275,10 +275,10 @@ describe('travel preference negotiation', () => {
     expect(() => validateProposedPreference('tripPace', 1)).not.toThrow()
     expect(() => validateProposedPreference('budgetTier', 2)).not.toThrow()
     expect(() => validateProposedPreference('tripPace', true)).toThrow(
-      'tripPace must be a number between 0 and 1.',
+      'Daily pace must be between the lowest and highest settings.',
     )
     expect(() => validateProposedPreference('budgetTier', 4)).toThrow(
-      'budgetTier must be 1, 2, or 3.',
+      'Budget must be set to a low, moderate, or high level.',
     )
   })
 
