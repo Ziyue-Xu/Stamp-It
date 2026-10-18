@@ -10,6 +10,7 @@ import {
   createNegotiationRequest,
   getNegotiationStatus,
   respondToNegotiationRequest,
+  startNegotiationSession,
   withNegotiationFamilyLock,
 } from './negotiation-store.js'
 import type { NegotiationSource } from './negotiation-store.js'
@@ -1215,9 +1216,45 @@ function registerNegotiationRoutes(
       return c.json({
         familyCode: result.familyCode,
         conflicts: result.conflicts,
-        requests: result.state.requests,
-        negotiatedValues: result.state.negotiatedValues,
-        resolvedPreferences: result.state.resolvedPreferences,
+        requests: result.requests,
+        negotiatedValues: result.negotiatedValues,
+        resolvedPreferences: result.resolvedPreferences,
+        balanced: result.balanced,
+        questionLimitReached: result.questionLimitReached,
+        sessionStatus: result.sessionStatus,
+        sessionId: result.sessionId,
+        sessionQuestionCount: result.sessionQuestionCount,
+        sessionQuestionLimit: result.sessionQuestionLimit,
+      })
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
+  })
+
+  app.post(`${base}/start`, async (c) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const auth = await currentSession(c)
+    if ('response' in auth) return auth.response
+    const familyCode = c.req.param('familyCode') ?? ''
+    try {
+      const result = await startNegotiationSession(
+        c.env,
+        source,
+        familyCode,
+        auth.session.userId,
+      )
+      return c.json({
+        familyCode: result.familyCode,
+        sessionStatus: result.sessionStatus,
+        sessionId: result.sessionId,
+        sessionQuestionCount: result.sessionQuestionCount,
+        sessionQuestionLimit: result.sessionQuestionLimit,
+        conflicts: result.conflicts,
+        requests: result.requests,
+        resolvedPreferences: result.resolvedPreferences,
+        balanced: result.balanced,
+        questionLimitReached: result.questionLimitReached,
       })
     } catch (error) {
       if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)

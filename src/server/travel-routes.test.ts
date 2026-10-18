@@ -1333,6 +1333,43 @@ describe('Auth0 travel routes', () => {
       expect.arrayContaining([expect.objectContaining({ preference: 'tripPace' })]),
     )
 
+    const consentStatusResponse = await request(
+      '/api/preference-families/1234/negotiations/status',
+      { headers: { Cookie: creatorCookie } },
+    )
+    expect(await consentStatusResponse.json()).toMatchObject({
+      sessionStatus: 'awaiting_consent',
+      sessionQuestionCount: 0,
+    })
+    const preConsentRequest = await request(
+      '/api/preference-families/1234/negotiations/requests',
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'pace-request-1',
+        },
+        body: JSON.stringify({ preference: 'tripPace', targetUserId: memberId }),
+      },
+    )
+    expect(preConsentRequest.status).toBe(409)
+    expect(await preConsentRequest.json()).toMatchObject({
+      error: 'Start a balancing session before creating a question.',
+    })
+    const uploadedSessionResponse = await request(
+      '/api/preference-families/1234/negotiations/start',
+      {
+        method: 'POST',
+        headers: { Origin: 'http://localhost', Cookie: creatorCookie },
+      },
+    )
+    expect(await uploadedSessionResponse.json()).toMatchObject({
+      sessionStatus: 'active',
+      sessionQuestionCount: 0,
+    })
+
     const requestBody = JSON.stringify({ preference: 'tripPace', targetUserId: memberId })
     const createdResponse = await request('/api/preference-families/1234/negotiations/requests', {
       method: 'POST',
@@ -1430,6 +1467,17 @@ describe('Auth0 travel routes', () => {
       'negotiationState',
     )
 
+    const travelSessionResponse = await request(
+      '/travel/families/1234/negotiations/start',
+      {
+        method: 'POST',
+        headers: { Origin: 'http://localhost', Cookie: creatorCookie },
+      },
+    )
+    expect(await travelSessionResponse.json()).toMatchObject({
+      sessionStatus: 'active',
+      sessionQuestionCount: 0,
+    })
     const travelRequestResponse = await request('/travel/families/1234/negotiations/requests', {
       method: 'POST',
       headers: {
@@ -1467,6 +1515,130 @@ describe('Auth0 travel routes', () => {
     expect(JSON.parse(objects.get('families/preferences-1234') ?? '{}')).toMatchObject({
       negotiationState: { requests: [expect.objectContaining({ status: 'accepted' })] },
     })
+
+    const cappedFamily = JSON.parse(objects.get('travel-families/1234') ?? '{}') as {
+      users: Array<{ userTravelProfile: Record<string, unknown> }>
+      negotiationState: {
+        requests: Array<Record<string, unknown>>
+        session: { id: string }
+        resolvedPreferences: Record<string, string>
+      }
+    }
+    cappedFamily.users[0]!.userTravelProfile.travelStyle = {
+      value: 0.1,
+      priority: 'flexible',
+    }
+    cappedFamily.users[1]!.userTravelProfile.travelStyle = {
+      value: 0.9,
+      priority: 'flexible',
+    }
+    const activeSessionId = cappedFamily.negotiationState.session.id
+    cappedFamily.negotiationState.requests.push(
+      ...Array.from({ length: 11 }, (_, index) => ({
+        requestId: `historical-${index}`,
+        familyCode: '1234',
+        requesterUserId: creatorId,
+        targetUserId: memberId,
+        targetName: 'Member',
+        preference: `historicalPreference${index}`,
+        currentValue: 0,
+        proposedValue: 1,
+        question: 'Historical question',
+        rationale: 'Historical test record',
+        status: 'rejected',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        attempt: 1,
+        sessionId: activeSessionId,
+      })),
+    )
+    objects.set('travel-families/1234', JSON.stringify(cappedFamily))
+
+    const overLimitResponse = await request('/travel/families/1234/negotiations/requests', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: creatorCookie,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'over-limit-travel-style-request',
+      },
+      body: JSON.stringify({ preference: 'travelStyle', targetUserId: memberId }),
+    })
+    expect(overLimitResponse.status).toBe(409)
+    expect(await overLimitResponse.json()).toMatchObject({
+      error: 'Negotiation reached this session’s question limit.',
+    })
+    expect(geminiFetch).toHaveBeenCalledTimes(2)
+
+    cappedFamily.negotiationState.resolvedPreferences.travelStyle = 'review'
+    objects.set('travel-families/1234', JSON.stringify(cappedFamily))
+    const reachedLimitStatus = await request(
+      '/travel/families/1234/negotiations/status',
+      { headers: { Cookie: creatorCookie } },
+    )
+    const limitStatus = (await reachedLimitStatus.json()) as {
+      sessionStatus: string
+      sessionId: string
+      sessionQuestionCount: number
+    }
+    expect(limitStatus).toMatchObject({
+      sessionStatus: 'limit_reached',
+      sessionQuestionCount: 12,
+    })
+    const restartResponse = await request('/travel/families/1234/negotiations/start', {
+      method: 'POST',
+      headers: { Origin: 'http://localhost', Cookie: creatorCookie },
+    })
+    expect(await restartResponse.json()).toMatchObject({
+      sessionStatus: 'active',
+      sessionQuestionCount: 0,
+      resolvedPreferences: {},
+    })
+    const restartedFamily = JSON.parse(objects.get('travel-families/1234') ?? '{}') as {
+      users: Array<{ userTravelProfile: Record<string, unknown> }>
+      negotiationState: { requests: unknown[]; session: { id: string } }
+    }
+    expect(restartedFamily.negotiationState.requests).toHaveLength(12)
+    expect(restartedFamily.negotiationState.session.id).not.toBe(limitStatus.sessionId)
+    expect(restartedFamily.users[1]?.userTravelProfile.tripPace).toMatchObject({
+      value: 0.1,
+      priority: 'flexible',
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          output_text: JSON.stringify({
+            action: 'ask_user',
+            target_participant: 'traveler_2',
+            proposed_value: 0.5,
+            question: 'Would a more exploratory trip feel right?',
+            rationale: 'A middle ground may work for the group.',
+          }),
+        }),
+      ),
+    )
+    const newSessionQuestion = await request(
+      '/travel/families/1234/negotiations/requests',
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'question-after-restart',
+        },
+        body: JSON.stringify({ preference: 'travelStyle', targetUserId: memberId }),
+      },
+    )
+    expect(newSessionQuestion.status).toBe(201)
+    const newSessionStatus = await request(
+      '/travel/families/1234/negotiations/status',
+      { headers: { Cookie: creatorCookie } },
+    )
+    expect(await newSessionStatus.json()).toMatchObject({
+      sessionStatus: 'active',
+      sessionQuestionCount: 1,
+    })
   })
 
   it('queues and runs bounded follow-up negotiation after a rejection', async () => {
@@ -1493,6 +1665,14 @@ describe('Auth0 travel routes', () => {
           {
             userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
             userTravelProfile: { tripPace: { value: 0.9, priority: 'flexible' } },
+          },
+          {
+            userProfile: {
+              userId: 'auth0|third',
+              name: 'Third',
+              email: 'third@example.com',
+            },
+            userTravelProfile: { tripPace: { value: 0.5, priority: 'flexible' } },
           },
         ],
       }),
@@ -1529,11 +1709,19 @@ describe('Auth0 travel routes', () => {
       question: 'Would you accept a moderate pace instead?',
       rationale: 'A middle value narrows the preference difference.',
     }
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(Response.json({ output_text: JSON.stringify(geminiAction) })),
-    )
+    const geminiFetch = vi
+      .fn()
+      .mockResolvedValue(Response.json({ output_text: JSON.stringify(geminiAction) }))
+    vi.stubGlobal('fetch', geminiFetch)
 
+    const sessionResponse = await request(
+      `/travel/families/${familyCode}/negotiations/start`,
+      {
+        method: 'POST',
+        headers: { Origin: 'http://localhost', Cookie: creatorCookie },
+      },
+    )
+    expect(sessionResponse.status).toBe(200)
     const createdResponse = await request(
       `/travel/families/${familyCode}/negotiations/requests`,
       {
@@ -1574,10 +1762,36 @@ describe('Auth0 travel routes', () => {
       },
     })
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(Response.json({ output_text: JSON.stringify(geminiAction) })),
+    const repeatedRequest = await request(
+      `/travel/families/${familyCode}/negotiations/requests`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'second-pace-request',
+        },
+        body: JSON.stringify({ preference: 'tripPace', targetUserId: memberId }),
+      },
     )
+    expect(repeatedRequest.status).toBe(409)
+    expect(await repeatedRequest.json()).toMatchObject({
+      error: 'This traveler has already been asked about this preference.',
+    })
+    expect(geminiFetch).toHaveBeenCalledOnce()
+
+    const followupGeminiAction = {
+      ...geminiAction,
+      target_participant: 'traveler_1',
+      proposed_value: 0.5,
+    }
+    const followupGeminiFetch = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ output_text: JSON.stringify(followupGeminiAction) }),
+      )
+    vi.stubGlobal('fetch', followupGeminiFetch)
     const result = await runJob(
       {
         type: 'travel-negotiation-followup',
@@ -1587,12 +1801,51 @@ describe('Auth0 travel routes', () => {
       env,
     )
     expect(result).toMatchObject({ stopped: false, created: [expect.any(String)] })
+    expect(followupGeminiFetch).toHaveBeenCalledOnce()
+    const duplicatePairResponse = await request(
+      `/travel/families/${familyCode}/negotiations/requests`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: memberCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'repeat-trip-pace-target',
+        },
+        body: JSON.stringify({ preference: 'tripPace', targetUserId: creatorId }),
+      },
+    )
+    expect(duplicatePairResponse.status).toBe(409)
+    expect(await duplicatePairResponse.json()).toMatchObject({
+      error: 'This traveler has already been asked about this preference.',
+    })
+    expect(followupGeminiFetch).toHaveBeenCalledOnce()
     const storedFamily = JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}') as {
-      negotiationState: { requests: Array<{ status: string; attempt: number }> }
+      negotiationState: {
+        requests: Array<{
+          status: string
+          attempt: number
+          requesterUserId: string
+          targetUserId: string
+          preference: string
+        }>
+      }
     }
     expect(storedFamily.negotiationState.requests).toMatchObject([
-      { status: 'rejected', attempt: 1 },
-      { status: 'pending', attempt: 2 },
+      {
+        status: 'rejected',
+        attempt: 1,
+        requesterUserId: creatorId,
+        targetUserId: memberId,
+        preference: 'tripPace',
+      },
+      {
+        status: 'pending',
+        attempt: 2,
+        requesterUserId: memberId,
+        targetUserId: creatorId,
+        preference: 'tripPace',
+      },
     ])
   })
 })

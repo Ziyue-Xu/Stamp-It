@@ -6,9 +6,9 @@ import { AVATARS, findAvatar } from "../data/avatars";
 import AvatarArt from "../components/AvatarArt";
 import { startSignIn, verifyCode, FAKE_CODE } from "../api/authApi";
 import { USE_REAL_BACKEND } from "../api/config";
-import "./ProfileScreen.css"; 
-import "./SignUpScreen.css"; 
-import "./SignUpStamp.css"; 
+import "./ProfileScreen.css";
+import "./SignUpScreen.css";
+import "./SignUpStamp.css";
 import Stamp from "../components/Stamp";
 import { LibertyArt, FujiArt, ChapelArt } from "../components/stampArt";
 
@@ -77,7 +77,7 @@ function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
     setBusy(true);
     setError("");
     try {
-     
+
       const account = await verifyCode({
         name: trimmedName,
         email: trimmedEmail,
@@ -116,7 +116,7 @@ function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
     return (
       <div className="signup-page">
       <main className="profile signup">
-   
+
         <TopRow
           onBackClick={() => {
             setStep("details");
@@ -156,12 +156,12 @@ function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
         {error && <p className="form-error">{error}</p>}
         {notice && <p className="form-note">{notice}</p>}
 
-  
+
         <button className="link-btn" onClick={handleResendClick} disabled={busy}>
           Didn't get it? Send a new code
         </button>
 
-  
+
         <motion.button
           className="btn-go"
           onClick={handleVerifyClick}

@@ -20,6 +20,32 @@ export interface NegotiationConflict {
   gap: number | null
 }
 
+export interface NegotiationStatus {
+  familyCode: string
+  conflicts: NegotiationConflict[]
+  requests: NegotiationRequest[]
+  negotiatedValues: Record<string, Record<string, unknown>>
+  resolvedPreferences: Record<string, string>
+  balanced: boolean
+  questionLimitReached: boolean
+  sessionStatus: NegotiationSessionStatus
+  sessionId: string | null
+  sessionQuestionCount: number
+  sessionQuestionLimit: number
+}
+
+export type NegotiationSessionStatus =
+  | 'awaiting_consent'
+  | 'active'
+  | 'completed'
+  | 'limit_reached'
+
+export interface NegotiationSession {
+  id: string
+  status: Exclude<NegotiationSessionStatus, 'awaiting_consent'>
+  startedAt: string
+}
+
 export interface NegotiationRequest {
   requestId: string
   familyCode: string
@@ -36,12 +62,14 @@ export interface NegotiationRequest {
   answeredAt?: string
   responseNote?: string | null
   attempt: number
+  sessionId?: string
 }
 
 export interface NegotiationState {
   requests: NegotiationRequest[]
   negotiatedValues: Record<string, Record<string, unknown>>
   resolvedPreferences: Record<string, string>
+  session?: NegotiationSession | null
   idempotency: Record<
     string,
     {
@@ -51,6 +79,7 @@ export interface NegotiationState {
       preference: string
       targetUserId?: string
       requesterUserId: string
+      sessionId?: string
     }
   >
 }
@@ -75,6 +104,7 @@ const GEMINI_TIMEOUT_MS = 20_000
 const MAX_REQUESTS_PER_PREFERENCE = 2
 const BASE_TOTAL_REQUESTS = 4
 const REQUESTS_PER_FAMILY_MEMBER = 4
+const QUESTIONS_PER_FAMILY_MEMBER = 4
 const NON_NEGOTIABLE = new Set(['dietaryRestrictions', 'luggagePreference'])
 const NUMERIC_THRESHOLDS: Record<string, number> = {
   tripPace: 0.2,
@@ -110,6 +140,7 @@ export function emptyNegotiationState(): NegotiationState {
     negotiatedValues: {},
     resolvedPreferences: {},
     idempotency: {},
+    session: null,
   }
 }
 
@@ -140,6 +171,7 @@ export function parseNegotiationState(value: unknown): NegotiationState {
       typeof request.attempt !== 'number' ||
       !Number.isInteger(request.attempt) ||
       request.attempt < 1 ||
+      (request.sessionId !== undefined && typeof request.sessionId !== 'string') ||
       !['pending', 'accepted', 'rejected', 'superseded'].includes(String(request.status))
     ) {
       throw new Error('Stored negotiation state contains an invalid request.')
@@ -161,16 +193,29 @@ export function parseNegotiationState(value: unknown): NegotiationState {
       typeof entry.preference !== 'string' ||
       typeof entry.requesterUserId !== 'string' ||
       !['generating', 'completed'].includes(String(entry.status)) ||
-      (entry.targetUserId !== undefined && typeof entry.targetUserId !== 'string')
+      (entry.targetUserId !== undefined && typeof entry.targetUserId !== 'string') ||
+      (entry.sessionId !== undefined && typeof entry.sessionId !== 'string')
     ) {
       throw new Error('Stored negotiation state contains an invalid idempotency entry.')
     }
+  }
+  const session = value.session
+  if (
+    session !== undefined &&
+    session !== null &&
+    (!isRecord(session) ||
+      typeof session.id !== 'string' ||
+      typeof session.startedAt !== 'string' ||
+      !['active', 'completed', 'limit_reached'].includes(String(session.status)))
+  ) {
+    throw new Error('Stored negotiation state contains an invalid session.')
   }
   return {
     requests: requests as NegotiationRequest[],
     negotiatedValues: value.negotiatedValues as Record<string, Record<string, unknown>>,
     resolvedPreferences: value.resolvedPreferences as Record<string, string>,
     idempotency: idempotency as NegotiationState['idempotency'],
+    session: (session ?? null) as NegotiationSession | null,
   }
 }
 
@@ -275,6 +320,46 @@ export function maxTotalNegotiationRequests(members: NegotiationMember[]): numbe
   return BASE_TOTAL_REQUESTS + REQUESTS_PER_FAMILY_MEMBER * members.length
 }
 
+export function maxTotalNegotiationQuestions(members: NegotiationMember[]): number {
+  return BASE_TOTAL_REQUESTS + QUESTIONS_PER_FAMILY_MEMBER * members.length
+}
+
+export function hasAskedPreferenceOfUser(
+  state: NegotiationState,
+  preference: string,
+  targetUserId: string,
+  excludeRequestId?: string,
+): boolean {
+  return (
+    state.requests.some(
+      (request) =>
+        request.preference === preference &&
+        request.targetUserId === targetUserId &&
+        request.requestId !== excludeRequestId,
+    ) ||
+    Object.values(state.idempotency).some(
+      (entry) =>
+        entry.preference === preference &&
+        entry.requestId !== excludeRequestId &&
+        entry.targetUserId === targetUserId,
+    )
+  )
+}
+
+export function hasUnaskedNegotiationTarget(
+  conflicts: NegotiationConflict[],
+  state: NegotiationState,
+): boolean {
+  return conflicts.some((conflict) => {
+    if (conflict.resolution !== 'negotiate' || state.resolvedPreferences[conflict.preference]) {
+      return false
+    }
+    return conflict.users.some(
+      (target) => !hasAskedPreferenceOfUser(state, conflict.preference, target.userId),
+    )
+  })
+}
+
 export function reconcileNegotiationState(
   members: NegotiationMember[],
   state: NegotiationState,
@@ -310,10 +395,16 @@ export function reconcileNegotiationState(
 export function validateProposedPreference(preference: string, value: unknown): void {
   if (preference === 'tripPace' || preference === 'travelStyle' || preference === 'activityPopularity') {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
-      throw new NegotiationError(`${preference} must be a number between 0 and 1.`, 502)
+      const label =
+        preference === 'tripPace'
+          ? 'Daily pace'
+          : preference === 'travelStyle'
+            ? 'Travel style'
+            : 'Attraction popularity'
+      throw new NegotiationError(`${label} must be between the lowest and highest settings.`, 502)
     }
   } else if (preference === 'budgetTier' && value !== 1 && value !== 2 && value !== 3) {
-    throw new NegotiationError('budgetTier must be 1, 2, or 3.', 502)
+    throw new NegotiationError('Budget must be set to a low, moderate, or high level.', 502)
   }
 }
 
