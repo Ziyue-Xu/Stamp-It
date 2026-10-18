@@ -3,6 +3,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #3a3d5c;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
@@ -10,6 +17,7 @@ body {
 
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   font-family: "Zen Maru Gothic", system-ui, sans-serif;
