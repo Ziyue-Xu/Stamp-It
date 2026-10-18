@@ -158,7 +158,7 @@ or `.dev.vars`:
 | `AUTH0_DOMAIN` | Auth0 tenant hostname |
 | `AUTH0_CLIENT_ID` | Passwordless Native application client ID |
 | `AUTH0_SESSION_SECRET` | Random session-signing secret, at least 32 characters |
-| `GEMINI_API_KEY` | Server-side access to Gemini itinerary generation |
+| `GEMINI_API_KEY` | Server-side access to Gemini trip planning and preference negotiation |
 
 Set secrets through the CLI's standard-input mode, entering each value only
 when prompted:
@@ -171,7 +171,42 @@ npx deepspace secrets set GEMINI_API_KEY --stdin
 ```
 
 Without the Auth0 settings, users cannot sign in. Without `GEMINI_API_KEY`,
-itinerary generation and activity-split suggestions are unavailable.
+trip planning, activity-split suggestions, and preference negotiation are unavailable.
+
+### Family preference negotiations
+
+Negotiation endpoints use the signed travel session and verify the caller's
+`userId` against a member's `userProfile.userId` in the selected cloud family
+record. The caller cannot supply the responder identity. Analysis and request
+history are visible to family members; only the requested member can accept or
+reject a request. Accepted values and request status are saved together on that
+family record. Dietary restrictions and luggage requirements are never changed
+by negotiation.
+
+The live travel records and uploaded preference records are intentionally
+independent, even when their family codes happen to match:
+
+| Operation | Live trip data (`travel-families`) | Uploaded preferences (`families`) |
+| --- | --- | --- |
+| Analyze conflicts | `GET /travel/families/:familyCode/negotiations/analyze` | `GET /api/preference-families/:familyCode/negotiations/analyze` |
+| Read requests/status | `GET /travel/families/:familyCode/negotiations/status` | `GET /api/preference-families/:familyCode/negotiations/status` |
+| Create a request | `POST /travel/families/:familyCode/negotiations/requests` | `POST /api/preference-families/:familyCode/negotiations/requests` |
+| Respond | `POST /travel/families/:familyCode/negotiations/:requestId/respond` | `POST /api/preference-families/:familyCode/negotiations/:requestId/respond` |
+
+Create-request calls send `preference`, optionally `targetUserId`, and a
+unique `Idempotency-Key` header. Response calls send `answer` (`accept` or
+`reject`) and optionally a short `note`; they must also be same-origin POSTs.
+Follow-up requests are queued when a response leaves negotiable conflicts.
+
+The Travel Together chat bubble uses these live-family endpoints: it checks
+for pending questions when opened, starts the first negotiable conflict when
+there is no negotiation history, and displays the target member's question
+with the proposed preference change. Only that member can answer Yes or No.
+While open, the bubble refreshes negotiation status and shows responses and
+follow-up questions as they arrive. No itinerary is needed for this flow.
+Editing preferences sends only changed answers, and the server merges those
+answers into the saved profile under the same family lock as negotiations, so
+unmodified preferences and an accepted agent proposal are retained.
 
 ## Common commands
 

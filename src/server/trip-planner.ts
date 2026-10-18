@@ -1,5 +1,9 @@
-const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions'
-const MODEL_NAME = 'gemini-3.8-flash'
+import {
+  GEMINI_INTERACTIONS_URL,
+  GEMINI_MODEL_NAME,
+  outputTextFromInteraction,
+} from './gemini-interactions.js'
+
 const REQUEST_TIMEOUT_MS = 30_000
 
 const generationPrompt = `
@@ -415,36 +419,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-function outputTextFromInteraction(interaction: Record<string, unknown>): string {
-  if (typeof interaction.output_text === 'string') return interaction.output_text
-  if (!Array.isArray(interaction.steps)) return ''
-
-  const textParts: string[] = []
-  let collecting = false
-  for (let i = interaction.steps.length - 1; i >= 0; i -= 1) {
-    const step = interaction.steps[i]
-    if (!isRecord(step)) continue
-    if (step.type === 'user_input') break
-    if (step.type === 'thought') continue
-    if (step.type !== 'model_output') {
-      if (collecting) break
-      continue
-    }
-    if (!Array.isArray(step.content)) continue
-    for (let j = step.content.length - 1; j >= 0; j -= 1) {
-      const content = step.content[j]
-      if (!isRecord(content)) continue
-      if (content.type === 'text') {
-        collecting = true
-        textParts.push(typeof content.text === 'string' ? content.text : '')
-      } else if (collecting) {
-        return textParts.reverse().join('')
-      }
-    }
-  }
-  return textParts.reverse().join('')
-}
-
 function normalizeTripDateTime(value: string): { date: string; time: string } {
   const usDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*(\d{1,2}):(\d{2})\s*(AM|PM))?$/iu.exec(value.trim())
   if (usDate) {
@@ -585,7 +559,7 @@ export async function generateTripPlan(
       'Api-Revision': '2026-05-20',
     },
     body: JSON.stringify({
-      model: MODEL_NAME,
+      model: GEMINI_MODEL_NAME,
       input: `${JSON.stringify(masterPreferences(family))}\n\n${generationPrompt}`,
       tools: [{ type: 'google_maps' }],
       generation_config: { thinking_level: 'low' },
@@ -630,7 +604,7 @@ export async function generateTripSplit(
       'Api-Revision': '2026-05-20',
     },
     body: JSON.stringify({
-      model: MODEL_NAME,
+      model: GEMINI_MODEL_NAME,
       input: [
         `User preferences:\n${JSON.stringify(input.family)}`,
         `Specific user's preference profile:\n${JSON.stringify(input.requestedUser)}`,

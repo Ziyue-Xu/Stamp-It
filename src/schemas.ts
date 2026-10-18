@@ -12,11 +12,13 @@ import { usersSchema } from './schemas/users-schema'
 import { settingsSchema } from './schemas/admin-schema'
 import { familiesSchema } from './schemas/families-schema'
 import { travelFamiliesSchema, travelPlansSchema, travelUsersSchema } from './schemas/travel-schema'
+import { negotiationLocksSchema } from './schemas/negotiation-locks-schema'
 
 export const schemas: CollectionSchema[] = [
   usersSchema,
   settingsSchema,
   familiesSchema,
+  negotiationLocksSchema,
   travelUsersSchema,
   travelFamiliesSchema,
   travelPlansSchema,

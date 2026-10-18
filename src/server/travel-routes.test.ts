@@ -1,21 +1,46 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Hono } from 'hono'
+import { runJob } from '../jobs.js'
 import type { Env } from '../../worker.js'
 import { travelFamiliesSchema, travelPlansSchema } from '../schemas/travel-schema.js'
 import { registerTravelRoutes } from './travel-routes.js'
 
 function testApp() {
   const objects = new Map<string, string>()
+  const jobs: Record<string, unknown>[] = []
   const rooms = {
     idFromName: (id: string) => id,
     get: () => ({
       fetch: async (request: Request) => {
         const { tool, params } = (await request.json()) as {
           tool: string
-          params: { collection: string; recordId: string; data?: Record<string, unknown> }
+          params: {
+            collection: string
+            recordId: string
+            data?: Record<string, unknown>
+            where?: Record<string, unknown>
+            limit?: number
+          }
         }
         const key = `${params.collection}/${params.recordId}`
         const previous = objects.get(key)
+        if (tool === 'records.query') {
+          const matches = [...objects.entries()]
+            .filter(([storedKey, storedValue]) => {
+              if (!storedKey.startsWith(`${params.collection}/`)) return false
+              const data = JSON.parse(storedValue) as Record<string, unknown>
+              return Object.entries(params.where ?? {}).every(([field, value]) => data[field] === value)
+            })
+            .slice(0, params.limit ?? 100)
+            .map(([storedKey, storedValue]) => ({
+              recordId: storedKey.slice(params.collection.length + 1),
+              data: JSON.parse(storedValue) as Record<string, unknown>,
+            }))
+          return Response.json({
+            success: true,
+            data: { records: matches, count: matches.length },
+          })
+        }
         if (tool === 'records.get') {
           return previous
             ? Response.json({
@@ -32,10 +57,23 @@ function testApp() {
           return Response.json({ success: true, data: { recordId: params.recordId } })
         }
         if (tool === 'records.create' || tool === 'records.update') {
-          objects.set(key, JSON.stringify(params.data))
+          const existing =
+            tool === 'records.update' && previous
+              ? (JSON.parse(previous) as Record<string, unknown>)
+              : {}
+          objects.set(key, JSON.stringify({ ...existing, ...params.data }))
           return Response.json({ success: true, data: { recordId: params.recordId } })
         }
         return Response.json({ success: false, error: `Unknown tool: ${tool}` })
+      },
+    }),
+  }
+  const jobRooms = {
+    idFromName: (id: string) => id,
+    get: () => ({
+      fetch: async (request: Request) => {
+        jobs.push((await request.json()) as Record<string, unknown>)
+        return Response.json({ job: { id: `job-${jobs.length}` } })
       },
     }),
   }
@@ -47,6 +85,7 @@ function testApp() {
     DEEPSPACE_APP_ID: 'app_test',
     OWNER_USER_ID: 'owner',
     RECORD_ROOMS: rooms,
+    JOB_ROOMS: jobRooms,
     GEMINI_API_KEY: 'test-gemini-api-key',
   } as unknown as Env
   const app = new Hono<{ Bindings: Env }>()
@@ -54,6 +93,8 @@ function testApp() {
 
   return {
     objects,
+    jobs,
+    env,
     request: (path: string, init?: RequestInit) => app.request(path, init, env),
   }
 }
@@ -217,6 +258,38 @@ describe('Auth0 travel routes', () => {
       },
     })
     objects.set(storedFamilyKey, JSON.stringify(storedFamily))
+
+    const partialPreferenceUpdate = await request(
+      `/families/${familyId}/members/auth0%7Ccreator/travel-profile`,
+      {
+        method: 'PUT',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: sessionCookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userTravelProfile: { tripPace: { value: 0.3, priority: 'flexible' } },
+        }),
+      },
+    )
+    expect(partialPreferenceUpdate.status).toBe(200)
+    const preservedPreferences = JSON.parse(objects.get(storedFamilyKey) ?? '{}') as {
+      users: Array<{
+        userTravelProfile: Record<string, Record<string, unknown>>
+      }>
+    }
+    expect(preservedPreferences.users[0]?.userTravelProfile.tripPace).toMatchObject({
+      value: 0.3,
+      priority: 'flexible',
+    })
+    expect(preservedPreferences.users[0]?.userTravelProfile.budgetTier).toMatchObject({
+      value: 2,
+      priority: 'critical',
+    })
+    expect(
+      preservedPreferences.users[0]?.userTravelProfile.dietaryRestrictions,
+    ).toMatchObject({ value: [], priority: 'weak_link' })
 
     const itinerary = {
       trip_title: 'Tokyo and Kyoto',
@@ -1160,5 +1233,366 @@ describe('Auth0 travel routes', () => {
       ],
     })
     expect(polled.plan).toEqual(stored.plan)
+  })
+
+  it('negotiates independently in either family collection and only the target can accept', async () => {
+    const { objects, request } = testApp()
+    const creatorId = 'auth0|creator'
+    const memberId = 'auth0|member'
+    const users = [
+      {
+        userProfile: { userId: creatorId, name: 'Creator', email: 'creator@example.com' },
+        userTravelProfile: {
+          tripPace: { value: 0.1, priority: 'flexible' },
+          budgetTier: { value: 2, priority: 'critical' },
+          diningCuisine: { value: 'local', priority: 'flexible' },
+        },
+      },
+      {
+        userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+        userTravelProfile: {
+          tripPace: { value: 0.9, priority: 'flexible' },
+          budgetTier: { value: 2, priority: 'critical' },
+          diningCuisine: { value: 'local', priority: 'flexible' },
+        },
+      },
+    ]
+    const travelFamily = {
+      familyCode: '1234',
+      country: 'Japan',
+      startDate: '2027-03-14',
+      endDate: '2027-03-16',
+      startTime: '09:00',
+      endTime: '18:00',
+      startCity: 'Tokyo',
+      endCity: 'Kyoto',
+      users: structuredClone(users),
+    }
+    objects.set('travel-families/1234', JSON.stringify(travelFamily))
+    objects.set(
+      'families/preferences-1234',
+      JSON.stringify({ familyCode: '1234', users: structuredClone(users) }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'creator-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: creatorId,
+            email: 'creator@example.com',
+            email_verified: true,
+          }),
+        )
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'member-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: memberId,
+            email: 'member@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const creatorCookie = await signIn(request, 'Creator', 'creator@example.com')
+    const memberCookie = await signIn(request, 'Member', 'member@example.com')
+    expect(objects.has('travel-plans/1234')).toBe(false)
+    const geminiAction = {
+      action: 'ask_user',
+      target_participant: 'traveler_2',
+      proposed_value: 0.1,
+      question: 'Would you be comfortable with a slower pace?',
+      rationale: 'This compromise respects the other traveler’s preference.',
+    }
+    const geminiFetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ output_text: JSON.stringify(geminiAction) }))
+      .mockResolvedValueOnce(Response.json({ output_text: JSON.stringify(geminiAction) }))
+    vi.stubGlobal('fetch', geminiFetch)
+
+    const uploadedAnalysis = await request(
+      '/api/preference-families/1234/negotiations/analyze',
+      { headers: { Cookie: creatorCookie } },
+    )
+    const travelAnalysis = await request(
+      '/travel/families/1234/negotiations/analyze',
+      { headers: { Cookie: creatorCookie } },
+    )
+    expect(uploadedAnalysis.status).toBe(200)
+    expect(travelAnalysis.status).toBe(200)
+    const uploadedAnalysisData = (await uploadedAnalysis.json()) as {
+      conflicts: unknown[]
+    }
+    const travelAnalysisData = (await travelAnalysis.json()) as { conflicts: unknown[] }
+    expect(uploadedAnalysisData.conflicts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ preference: 'tripPace' })]),
+    )
+    expect(travelAnalysisData.conflicts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ preference: 'tripPace' })]),
+    )
+
+    const requestBody = JSON.stringify({ preference: 'tripPace', targetUserId: memberId })
+    const createdResponse = await request('/api/preference-families/1234/negotiations/requests', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: creatorCookie,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'pace-request-1',
+      },
+      body: requestBody,
+    })
+    const created = (await createdResponse.json()) as {
+      request: { requestId: string; targetUserId: string; status: string }
+    }
+    expect(createdResponse.status).toBe(201)
+    expect(created.request).toMatchObject({
+      targetUserId: memberId,
+      status: 'pending',
+      requesterUserId: creatorId,
+    })
+    expect(geminiFetch).toHaveBeenCalledOnce()
+    expect(JSON.parse(objects.get('families/preferences-1234') ?? '{}')).toHaveProperty(
+      'negotiationState',
+    )
+    expect(JSON.parse(objects.get('travel-families/1234') ?? '{}')).not.toHaveProperty(
+      'negotiationState',
+    )
+
+    const duplicateResponse = await request('/api/preference-families/1234/negotiations/requests', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: creatorCookie,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'pace-request-1',
+      },
+      body: requestBody,
+    })
+    expect(duplicateResponse.status).toBe(200)
+    const duplicate = (await duplicateResponse.json()) as { status: string }
+    expect(duplicate.status).toBe('existing')
+    expect(geminiFetch).toHaveBeenCalledOnce()
+
+    const deniedResponse = await request(
+      `/api/preference-families/1234/negotiations/${created.request.requestId}/respond`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answer: 'accept', userId: memberId }),
+      },
+    )
+    expect(deniedResponse.status).toBe(403)
+
+    const acceptedResponse = await request(
+      `/api/preference-families/1234/negotiations/${created.request.requestId}/respond`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: memberCookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answer: 'accept' }),
+      },
+    )
+    expect(acceptedResponse.status).toBe(200)
+    const preferenceFamily = JSON.parse(objects.get('families/preferences-1234') ?? '{}') as {
+      familyCode: string
+      users: Array<{ userProfile: { userId: string }; userTravelProfile: Record<string, { value: unknown }> }>
+      negotiationState: { requests: Array<{ status: string; targetUserId: string }> }
+    }
+    expect(preferenceFamily.familyCode).toBe('1234')
+    expect(preferenceFamily.users[1]?.userTravelProfile.tripPace).toMatchObject({
+      value: 0.1,
+      priority: 'flexible',
+    })
+    expect(preferenceFamily.users[1]?.userTravelProfile.budgetTier).toMatchObject({
+      value: 2,
+      priority: 'critical',
+    })
+    expect(preferenceFamily.users[1]?.userTravelProfile.diningCuisine).toMatchObject({
+      value: 'local',
+      priority: 'flexible',
+    })
+    expect(objects.has('travel-plans/1234')).toBe(false)
+    expect(preferenceFamily.negotiationState.requests[0]).toMatchObject({
+      status: 'accepted',
+      targetUserId: memberId,
+    })
+    expect(JSON.parse(objects.get('travel-families/1234') ?? '{}')).not.toHaveProperty(
+      'negotiationState',
+    )
+
+    const travelRequestResponse = await request('/travel/families/1234/negotiations/requests', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost',
+        Cookie: creatorCookie,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': 'travel-pace-request-1',
+      },
+      body: requestBody,
+    })
+    const travelRequest = (await travelRequestResponse.json()) as {
+      request: { requestId: string }
+    }
+    expect(travelRequestResponse.status).toBe(201)
+
+    const travelAcceptedResponse = await request(
+      `/travel/families/1234/negotiations/${travelRequest.request.requestId}/respond`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: memberCookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answer: 'accept' }),
+      },
+    )
+    expect(travelAcceptedResponse.status).toBe(200)
+    const acceptedTravelFamily = JSON.parse(objects.get('travel-families/1234') ?? '{}') as {
+      users: Array<{ userTravelProfile: Record<string, { value: unknown }> }>
+      negotiationState: { requests: Array<{ status: string }> }
+    }
+    expect(acceptedTravelFamily.users[1]?.userTravelProfile.tripPace.value).toBe(0.1)
+    expect(acceptedTravelFamily.negotiationState.requests[0]?.status).toBe('accepted')
+    expect(JSON.parse(objects.get('families/preferences-1234') ?? '{}')).toMatchObject({
+      negotiationState: { requests: [expect.objectContaining({ status: 'accepted' })] },
+    })
+  })
+
+  it('queues and runs bounded follow-up negotiation after a rejection', async () => {
+    const { env, jobs, objects, request } = testApp()
+    const creatorId = 'auth0|creator'
+    const memberId = 'auth0|member'
+    const familyCode = '8912'
+    objects.set(
+      `travel-families/${familyCode}`,
+      JSON.stringify({
+        familyCode,
+        country: 'Japan',
+        startDate: '2027-03-14',
+        endDate: '2027-03-16',
+        startTime: '09:00',
+        endTime: '18:00',
+        startCity: '',
+        endCity: '',
+        users: [
+          {
+            userProfile: { userId: creatorId, name: 'Creator', email: 'creator@example.com' },
+            userTravelProfile: { tripPace: { value: 0.1, priority: 'flexible' } },
+          },
+          {
+            userProfile: { userId: memberId, name: 'Member', email: 'member@example.com' },
+            userTravelProfile: { tripPace: { value: 0.9, priority: 'flexible' } },
+          },
+        ],
+      }),
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'creator-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: creatorId,
+            email: 'creator@example.com',
+            email_verified: true,
+          }),
+        )
+        .mockResolvedValueOnce(Response.json({}))
+        .mockResolvedValueOnce(Response.json({ access_token: 'member-access-token' }))
+        .mockResolvedValueOnce(
+          Response.json({
+            sub: memberId,
+            email: 'member@example.com',
+            email_verified: true,
+          }),
+        ),
+    )
+    const creatorCookie = await signIn(request, 'Creator', 'creator@example.com')
+    const memberCookie = await signIn(request, 'Member', 'member@example.com')
+    const geminiAction = {
+      action: 'ask_user',
+      target_participant: 'traveler_2',
+      proposed_value: 0.2,
+      question: 'Would you accept a moderate pace instead?',
+      rationale: 'A middle value narrows the preference difference.',
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ output_text: JSON.stringify(geminiAction) })),
+    )
+
+    const createdResponse = await request(
+      `/travel/families/${familyCode}/negotiations/requests`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: creatorCookie,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'initial-pace-request',
+        },
+        body: JSON.stringify({ preference: 'tripPace', targetUserId: memberId }),
+      },
+    )
+    const created = (await createdResponse.json()) as { request: { requestId: string } }
+    expect(createdResponse.status).toBe(201)
+
+    const rejectedResponse = await request(
+      `/travel/families/${familyCode}/negotiations/${created.request.requestId}/respond`,
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'http://localhost',
+          Cookie: memberCookie,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answer: 'reject', note: 'I prefer my original pace.' }),
+      },
+    )
+    expect(rejectedResponse.status).toBe(200)
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0]).toMatchObject({
+      type: 'travel-negotiation-followup',
+      payload: {
+        source: 'travel-families',
+        familyCode,
+        requesterUserId: memberId,
+        triggerRequestId: created.request.requestId,
+      },
+    })
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ output_text: JSON.stringify(geminiAction) })),
+    )
+    const result = await runJob(
+      {
+        type: 'travel-negotiation-followup',
+        payload: jobs[0].payload,
+      } as Parameters<typeof runJob>[0],
+      { progress: vi.fn() } as unknown as Parameters<typeof runJob>[1],
+      env,
+    )
+    expect(result).toMatchObject({ stopped: false, created: [expect.any(String)] })
+    const storedFamily = JSON.parse(objects.get(`travel-families/${familyCode}`) ?? '{}') as {
+      negotiationState: { requests: Array<{ status: string; attempt: number }> }
+    }
+    expect(storedFamily.negotiationState.requests).toMatchObject([
+      { status: 'rejected', attempt: 1 },
+      { status: 'pending', attempt: 2 },
+    ])
   })
 })

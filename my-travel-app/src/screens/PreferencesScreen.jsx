@@ -81,8 +81,16 @@ function PreferencesScreen({ profile, trip, onDone, initialAnswers, onCancel }) 
     setBusy(true);
     setError("");
     try {
-      const travelProfile = buildTravelProfile(finalAnswers);
-      // >>>>> DATA LEAVES HERE (all 13 answers go to saveTravelProfile)
+      const fullProfile = buildTravelProfile(finalAnswers);
+      const travelProfile = initialAnswers
+        ? Object.fromEntries(
+            Object.entries(fullProfile).filter(
+              ([field, preference]) =>
+                JSON.stringify(preference.value) !==
+                JSON.stringify(initialAnswers[field])
+            )
+          )
+        : fullProfile;
       await saveTravelProfile(profile.userId, trip.familyId, travelProfile);
       onDone();
     } catch (problem) {

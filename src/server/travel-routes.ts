@@ -1,6 +1,19 @@
 import type { Context, Hono } from 'hono'
-import type { ActionResult, GetActionData, MutateActionData } from 'deepspace/worker'
+import { enqueueJob } from 'deepspace/worker'
+import type {
+  ActionResult,
+  GetActionData,
+  MutateActionData,
+} from 'deepspace/worker'
 import type { AppContext, Env } from '../../worker.js'
+import {
+  createNegotiationRequest,
+  getNegotiationStatus,
+  respondToNegotiationRequest,
+  withNegotiationFamilyLock,
+} from './negotiation-store.js'
+import type { NegotiationSource } from './negotiation-store.js'
+import { NegotiationError } from './negotiation.js'
 import { generateTripPlan, generateTripSplit, getTripPlan } from './trip-planner.js'
 
 const SESSION_COOKIE = 'travel_session'
@@ -67,6 +80,7 @@ interface TravelFamily {
   startCity: string
   endCity: string
   users: FamilyMember[]
+  negotiationState?: unknown
 }
 
 const TRAVEL_PREFERENCE_DEFAULTS = {
@@ -1016,6 +1030,27 @@ function normalizeTravelProfile(value: unknown): Record<string, { value: unknown
   return profile
 }
 
+function mergeTravelProfile(
+  existing: unknown,
+  updates: unknown,
+): Record<string, { value: unknown; priority: string }> {
+  const profile = normalizeTravelProfile(existing)
+  if (!isRecord(updates)) return profile
+
+  for (const [oldKey, rawPreference] of Object.entries(updates)) {
+    const key = oldKey === 'attractionPopularity' ? 'activityPopularity' : oldKey
+    if (
+      !(key in TRAVEL_PREFERENCE_DEFAULTS) ||
+      !isRecord(rawPreference) ||
+      !Object.hasOwn(rawPreference, 'value')
+    ) {
+      continue
+    }
+    profile[key] = { ...profile[key], value: rawPreference.value }
+  }
+  return profile
+}
+
 function normalizeFamily(value: unknown, familyCode: string): TravelFamily {
   if (!isRecord(value)) throw new Error(`Stored family ${familyCode} is invalid.`)
   const start = normalizeDateTime(value.startDate, value.startTime)
@@ -1060,6 +1095,9 @@ function normalizeFamily(value: unknown, familyCode: string): TravelFamily {
           ? value.departureCity
           : '',
     users,
+    ...(value.negotiationState === undefined
+      ? {}
+      : { negotiationState: value.negotiationState }),
   }
 }
 
@@ -1138,13 +1176,190 @@ async function requireFamilyMember(
   return { family }
 }
 
+function registerNegotiationRoutes(
+  app: Hono<AppContext>,
+  prefix: string,
+  source: NegotiationSource,
+): void {
+  const base = `${prefix}/:familyCode/negotiations`
+
+  app.get(`${base}/analyze`, async (c) => {
+    const auth = await currentSession(c)
+    if ('response' in auth) return auth.response
+    const familyCode = c.req.param('familyCode') ?? ''
+    try {
+      const result = await getNegotiationStatus(
+        c.env,
+        source,
+        familyCode,
+        auth.session.userId,
+      )
+      return c.json({ familyCode: result.familyCode, conflicts: result.conflicts })
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
+  })
+
+  app.get(`${base}/status`, async (c) => {
+    const auth = await currentSession(c)
+    if ('response' in auth) return auth.response
+    const familyCode = c.req.param('familyCode') ?? ''
+    try {
+      const result = await getNegotiationStatus(
+        c.env,
+        source,
+        familyCode,
+        auth.session.userId,
+      )
+      return c.json({
+        familyCode: result.familyCode,
+        conflicts: result.conflicts,
+        requests: result.state.requests,
+        negotiatedValues: result.state.negotiatedValues,
+        resolvedPreferences: result.state.resolvedPreferences,
+      })
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
+  })
+
+  app.post(`${base}/requests`, async (c) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const auth = await currentSession(c)
+    if ('response' in auth) return auth.response
+    const body = await readJsonBody(c)
+    if (!body || typeof body.preference !== 'string' || !body.preference.trim()) {
+      return jsonError(c, 'A preference key is required.', 400)
+    }
+    if (
+      body.targetUserId !== undefined &&
+      (typeof body.targetUserId !== 'string' || !body.targetUserId)
+    ) {
+      return jsonError(c, 'Target user ID must identify a family member.', 400)
+    }
+    const idempotencyKey = c.req.header('Idempotency-Key') ?? body.idempotencyKey
+    if (
+      typeof idempotencyKey !== 'string' ||
+      !idempotencyKey.trim() ||
+      idempotencyKey.length > 128
+    ) {
+      return jsonError(c, 'A unique Idempotency-Key of at most 128 characters is required.', 400)
+    }
+    const familyCode = c.req.param('familyCode') ?? ''
+    try {
+      const result = await createNegotiationRequest(c.env, {
+        source,
+        familyCode,
+        requesterUserId: auth.session.userId,
+        targetUserId: typeof body.targetUserId === 'string' ? body.targetUserId : undefined,
+        preference: body.preference.trim(),
+        idempotencyKey,
+      })
+      if (result.status === 'generating') {
+        return c.json({ status: result.status, requestId: result.requestId }, 202)
+      }
+      if (result.status === 'recommended') {
+        return c.json(
+          {
+            status: result.status,
+            action: result.action,
+            rationale: result.rationale,
+            conflicts: result.conflicts,
+          },
+          200,
+        )
+      }
+      return c.json(
+        result.status === 'created'
+          ? { status: result.status, request: result.request, conflicts: result.conflicts }
+          : { status: result.status, request: result.request },
+        result.status === 'created' ? 201 : 200,
+      )
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
+  })
+
+  app.post(`${base}/:requestId/respond`, async (c) => {
+    if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
+    const auth = await currentSession(c)
+    if ('response' in auth) return auth.response
+    const body = await readJsonBody(c)
+    if (!body || (body.answer !== 'accept' && body.answer !== 'reject')) {
+      return jsonError(c, 'Answer must be accept or reject.', 400)
+    }
+    if (
+      body.note !== undefined &&
+      body.note !== null &&
+      (typeof body.note !== 'string' || body.note.length > 1000)
+    ) {
+      return jsonError(c, 'Response note must be at most 1000 characters.', 400)
+    }
+    const familyCode = c.req.param('familyCode') ?? ''
+    const requestId = c.req.param('requestId') ?? ''
+    try {
+      const result = await respondToNegotiationRequest(c.env, {
+        source,
+        familyCode,
+        requestId,
+        responderUserId: auth.session.userId,
+        answer: body.answer,
+        note: typeof body.note === 'string' ? body.note : null,
+      })
+      if (result.conflicts.length > 0) {
+        try {
+          await enqueueJob(
+            c.env.JOB_ROOMS,
+            `app:${c.env.DEEPSPACE_APP_ID}`,
+            'travel-negotiation-followup',
+            {
+              source,
+              familyCode,
+              requesterUserId: auth.session.userId,
+              triggerRequestId: result.request.requestId,
+            },
+            { maxAttempts: 3, enqueuedBy: auth.session.userId },
+          )
+        } catch (error) {
+          console.error('Negotiation response saved, but follow-up work could not be queued.', error)
+          return jsonError(
+            c,
+            'Your response was saved, but follow-up negotiation could not be scheduled.',
+            503,
+          )
+        }
+      }
+      return c.json({
+        request: result.request,
+        conflicts: result.conflicts,
+        followUpQueued: result.conflicts.length > 0,
+      })
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
+  })
+}
+
 export function registerTravelRoutes(app: Hono<AppContext>): void {
-  for (const path of ['/auth/*', '/users/*', '/families/*', '/travel/families/*']) {
+  for (const path of [
+    '/auth/*',
+    '/users/*',
+    '/families/*',
+    '/travel/families/*',
+    '/api/preference-families/*',
+  ]) {
     app.use(path, async (c, next) => {
       c.header('Cache-Control', 'no-store')
       await next()
     })
   }
+  registerNegotiationRoutes(app, '/families', 'travel-families')
+  registerNegotiationRoutes(app, '/travel/families', 'travel-families')
+  registerNegotiationRoutes(app, '/api/preference-families', 'families')
 
   app.post('/auth/start', async (c) => {
     if (!isSameOrigin(c)) return jsonError(c, 'Requests must come from this app.', 401)
@@ -1568,13 +1783,23 @@ export function registerTravelRoutes(app: Hono<AppContext>): void {
     ) {
       return jsonError(c, 'Expected a travel preferences object.', 400)
     }
-    const access = await requireFamilyMember(c, familyCode, userId)
-    if ('response' in access) return access.response
-    const member = access.family.users.find((entry) => entry.userProfile.userId === userId)
-    if (!member) return jsonError(c, 'Family member not found.', 404)
-    member.userTravelProfile = normalizeTravelProfile(body.userTravelProfile)
-    await persistFamily(c.env, access.family)
-    return c.json({ success: true })
+    try {
+      return await withNegotiationFamilyLock(c.env, 'travel-families', familyCode, async () => {
+        const access = await requireFamilyMember(c, familyCode, userId)
+        if ('response' in access) return access.response
+        const member = access.family.users.find((entry) => entry.userProfile.userId === userId)
+        if (!member) return jsonError(c, 'Family member not found.', 404)
+        member.userTravelProfile = mergeTravelProfile(
+          member.userTravelProfile,
+          body.userTravelProfile,
+        )
+        await persistFamily(c.env, access.family)
+        return c.json({ success: true })
+      })
+    } catch (error) {
+      if (error instanceof NegotiationError) return jsonError(c, error.message, error.status)
+      throw error
+    }
   })
 
   const generatePlan = async (c: Context<AppContext>) => {

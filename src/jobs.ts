@@ -40,11 +40,47 @@
  */
 
 import type { Job, JobContext } from 'deepspace/worker'
+import type { Env } from '../worker.js'
+import { automaticallyCreateNegotiationRequests } from './server/negotiation-store.js'
 
 export async function runJob(
-  _job: Job,
-  _ctx: JobContext,
-  _env: unknown,
-): Promise<void> {
-  // No-op — implement your job handlers here. Dispatch on `_job.type`.
+  job: Job,
+  ctx: JobContext,
+  env: Env,
+): Promise<unknown> {
+  if (job.type === 'travel-negotiation-followup') {
+    const payload = job.payload
+    if (
+      payload === null ||
+      typeof payload !== 'object' ||
+      !('source' in payload) ||
+      !('familyCode' in payload) ||
+      !('requesterUserId' in payload) ||
+      !('triggerRequestId' in payload)
+    ) {
+      throw new Error('Negotiation follow-up job has an invalid payload.')
+    }
+    const source = payload.source
+    const familyCode = payload.familyCode
+    const requesterUserId = payload.requesterUserId
+    const triggerRequestId = payload.triggerRequestId
+    if (
+      (source !== 'families' && source !== 'travel-families') ||
+      typeof familyCode !== 'string' ||
+      typeof requesterUserId !== 'string' ||
+      typeof triggerRequestId !== 'string'
+    ) {
+      throw new Error('Negotiation follow-up job has an invalid payload.')
+    }
+    await ctx.progress(0.1, 'Checking the updated family preferences.')
+    const result = await automaticallyCreateNegotiationRequests(env, {
+      source,
+      familyCode,
+      requesterUserId,
+      triggerRequestId,
+    })
+    await ctx.progress(1, 'Negotiation follow-up complete.')
+    return result
+  }
+  throw new Error(`Unknown job type: ${job.type}`)
 }

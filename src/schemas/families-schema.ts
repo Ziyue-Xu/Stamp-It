@@ -5,6 +5,7 @@ export const familiesSchema: CollectionSchema = {
   columns: [
     { name: 'familyCode', storage: 'text', interpretation: 'plain', required: true },
     { name: 'users', storage: 'text', interpretation: { kind: 'json' }, required: true },
+    { name: 'negotiationState', storage: 'text', interpretation: { kind: 'json' }, required: false },
   ],
   uniqueOn: ['familyCode'],
   permissions: {

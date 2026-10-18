@@ -32,6 +32,7 @@ export const travelFamiliesSchema: CollectionSchema = {
     { name: 'startCity', storage: 'text', interpretation: 'plain', required: false },
     { name: 'endCity', storage: 'text', interpretation: 'plain', required: false },
     { name: 'users', storage: 'text', interpretation: { kind: 'json' }, required: true },
+    { name: 'negotiationState', storage: 'text', interpretation: { kind: 'json' }, required: false },
   ],
   uniqueOn: ['familyCode'],
   permissions: privatePermissions,
