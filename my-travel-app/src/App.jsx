@@ -270,7 +270,6 @@ function App() {
     setSavedAnswers(null);
     setScreen("welcome");
   }
-
   async function handleGeneratePlan() {
     const result = await generateGroupPlan(trip.familyId, profile.userId, trip);
     if (result.plan) {
@@ -279,7 +278,6 @@ function App() {
     }
     return result;
   }
-
   async function handleReloadTrip() {
     const fresh = await findTripByCode(trip.tripCode);
     const result = await getExistingPlan(fresh.familyId || trip.familyId, fresh);
@@ -315,6 +313,7 @@ function App() {
 
   return (
     <div className="app" style={colors}>
+
       {screen === "welcome" && (
         <WelcomeScreen
           onStartTrip={handleNewTrip}
