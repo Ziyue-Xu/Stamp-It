@@ -30,6 +30,14 @@ export function getNegotiationStatus(familyId) {
   return requestNegotiation(`${negotiationPath(familyId)}/status`);
 }
 
+export function startNegotiationSession(familyId) {
+  return requestNegotiation(`${negotiationPath(familyId)}/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+}
+
 export function createNegotiationRequest({
   familyId,
   preference,

@@ -8,7 +8,9 @@ import type { Env } from '../../worker.js'
 import {
   askGeminiForNegotiation,
   detectNegotiationConflicts,
-  maxTotalNegotiationRequests,
+  hasAskedPreferenceOfUser,
+  hasUnaskedNegotiationTarget,
+  maxTotalNegotiationQuestions,
   NegotiationError,
   negotiationLimits,
   parseNegotiationMembers,
@@ -20,6 +22,7 @@ import type {
   NegotiationConflict,
   NegotiationMember,
   NegotiationRequest,
+  NegotiationStatus,
   NegotiationState,
 } from './negotiation.js'
 
@@ -50,6 +53,22 @@ interface NegotiationLock {
 const LOCK_LEASE_MS = 60_000
 const LOCK_WAIT_ATTEMPTS = 120
 const LOCK_POLL_INTERVAL_MS = 250
+
+function reservedNegotiationQuestions(
+  state: NegotiationState,
+  sessionId: string,
+  excludeRequestId?: string,
+): number {
+  return (
+    state.requests.filter((request) => request.sessionId === sessionId).length +
+    Object.values(state.idempotency).filter(
+      (entry) =>
+        entry.status === 'generating' &&
+        entry.sessionId === sessionId &&
+        entry.requestId !== excludeRequestId,
+    ).length
+  )
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -276,7 +295,7 @@ export async function getNegotiationStatus(
   source: NegotiationSource,
   familyCode: string,
   userId: string,
-): Promise<{ familyCode: string; conflicts: NegotiationConflict[]; state: NegotiationState }> {
+): Promise<NegotiationStatus> {
   return withFamilyLock(env, source, familyCode, () =>
     getNegotiationStatusLocked(env, source, familyCode, userId),
   )
@@ -287,13 +306,79 @@ async function getNegotiationStatusLocked(
   source: NegotiationSource,
   familyCode: string,
   userId: string,
-): Promise<{ familyCode: string; conflicts: NegotiationConflict[]; state: NegotiationState }> {
+): Promise<NegotiationStatus> {
   const family = await loadFamilyRecord(env, source, familyCode)
   requireFamilyMember(family, userId)
   const before = JSON.stringify(family.state)
   const conflicts = reconcileNegotiationState(family.members, family.state)
+  const sessionQuestionLimit = maxTotalNegotiationQuestions(family.members)
+  const session = family.state.session
+  const sessionStatus = session?.status ?? 'awaiting_consent'
+  const sessionQuestionCount = session
+    ? reservedNegotiationQuestions(family.state, session.id)
+    : 0
+  const pending = session
+    ? family.state.requests.some(
+        (request) => request.sessionId === session.id && request.status === 'pending',
+      )
+    : false
+  const generating = Object.values(family.state.idempotency).some(
+    (entry) => entry.status === 'generating' && entry.sessionId === session?.id,
+  )
+  if (session?.status === 'active' && !pending && !generating) {
+    if (sessionQuestionCount >= sessionQuestionLimit) {
+      session.status = 'limit_reached'
+    } else if (!hasUnaskedNegotiationTarget(conflicts, family.state)) {
+      session.status = 'completed'
+    }
+  }
   if (JSON.stringify(family.state) !== before) await saveFamilyRecord(env, family)
-  return { familyCode, conflicts, state: family.state }
+  const finalSessionStatus = family.state.session?.status ?? 'awaiting_consent'
+  const questionLimitReached = finalSessionStatus === 'limit_reached'
+  return {
+    familyCode,
+    conflicts,
+    requests: family.state.requests,
+    negotiatedValues: family.state.negotiatedValues,
+    resolvedPreferences: family.state.resolvedPreferences,
+    balanced: finalSessionStatus === 'completed',
+    questionLimitReached,
+    sessionStatus: finalSessionStatus,
+    sessionId: family.state.session?.id ?? null,
+    sessionQuestionCount,
+    sessionQuestionLimit,
+  }
+}
+
+export async function startNegotiationSession(
+  env: Env,
+  source: NegotiationSource,
+  familyCode: string,
+  userId: string,
+): Promise<NegotiationStatus> {
+  return withFamilyLock(env, source, familyCode, async () => {
+    const family = await loadFamilyRecord(env, source, familyCode)
+    requireFamilyMember(family, userId)
+    if (family.state.session?.status !== 'active') {
+      const id = crypto.randomUUID()
+      family.state.session = {
+        id,
+        status: 'active',
+        startedAt: new Date().toISOString(),
+      }
+      family.state.resolvedPreferences = {}
+      for (const request of family.state.requests) {
+        if (request.status === 'pending' && !request.sessionId) {
+          request.sessionId = id
+        }
+      }
+      for (const entry of Object.values(family.state.idempotency)) {
+        if (entry.status === 'generating' && !entry.sessionId) entry.sessionId = id
+      }
+      await saveFamilyRecord(env, family)
+    }
+    return getNegotiationStatusLocked(env, source, familyCode, userId)
+  })
 }
 
 function findConflict(
@@ -375,7 +460,8 @@ async function createNegotiationRequestLocked(
     previous &&
     (previous.preference !== input.preference ||
       previous.requesterUserId !== input.requesterUserId ||
-      previous.targetUserId !== input.targetUserId)
+      (input.targetUserId !== undefined &&
+        previous.targetUserId !== input.targetUserId))
   ) {
     throw new NegotiationError('Idempotency key was already used for a different request.', 409)
   }
@@ -396,8 +482,19 @@ async function createNegotiationRequestLocked(
     return { status: 'existing', request }
   }
 
+  const session = family.state.session
+  if (!session || session.status !== 'active') {
+    throw new NegotiationError('Start a balancing session before creating a question.', 409)
+  }
+  const sessionId = session.id
   const conflicts = reconcileNegotiationState(family.members, family.state)
   const conflict = findConflict(conflicts, input.preference)
+  if (family.state.resolvedPreferences[input.preference]) {
+    throw new NegotiationError(
+      `The agent has already resolved ${input.preference} for this round of balancing.`,
+      409,
+    )
+  }
   if (negotiationLimits.nonNegotiable.has(conflict.preference)) {
     throw new NegotiationError(`${conflict.preference} is protected and cannot be negotiated.`, 409)
   }
@@ -407,41 +504,44 @@ async function createNegotiationRequestLocked(
       409,
     )
   }
-  if (
-    input.targetUserId &&
-    !conflict.users.some((user) => user.userId === input.targetUserId)
-  ) {
-    throw new NegotiationError('Target user is not part of this family conflict.', 400)
+  const requester = conflict.users.find((user) => user.userId === input.requesterUserId)
+  if (!requester) {
+    throw new NegotiationError('Only a traveler in this conflict can start its negotiation.', 409)
   }
-  if (
-    family.state.requests.some(
-      (request) => request.preference === input.preference && request.status === 'pending',
-    ) ||
-    Object.values(family.state.idempotency).some(
-      (entry) =>
-        entry.status === 'generating' && entry.preference === input.preference,
-    )
-  ) {
-    throw new NegotiationError('A negotiation request is already pending for this family.', 409)
-  }
-  const attempt =
-    family.state.requests.filter((request) => request.preference === input.preference).length + 1
-  if (attempt > negotiationLimits.maxRequestsPerPreference) {
+  const targetUserId =
+    input.targetUserId ??
+    conflict.users.find(
+      (user) =>
+        user.userId !== input.requesterUserId &&
+        !hasAskedPreferenceOfUser(
+          family.state,
+          input.preference,
+          user.userId,
+        ),
+    )?.userId
+  if (!targetUserId || targetUserId === input.requesterUserId) {
     throw new NegotiationError(
-      `Negotiation stopped for ${input.preference} after ${negotiationLimits.maxRequestsPerPreference} requests.`,
+      `There are no unasked travelers left for ${input.preference}.`,
       409,
     )
   }
-  const pendingGenerations = Object.values(family.state.idempotency).filter(
-    (entry) => entry.status === 'generating',
-  ).length
-  if (family.state.requests.length + pendingGenerations >= maxTotalNegotiationRequests(family.members)) {
-    throw new NegotiationError('Negotiation reached the family-wide request limit.', 409)
+  if (!conflict.users.some((user) => user.userId === targetUserId)) {
+    throw new NegotiationError('Target user is not part of this family conflict.', 400)
   }
-  const target = input.targetUserId
-    ? conflict.users.find((user) => user.userId === input.targetUserId)
-    : undefined
-  if (target && !family.members.some((member) => member.userProfile.userId === target.userId)) {
+  if (hasAskedPreferenceOfUser(family.state, input.preference, targetUserId)) {
+    throw new NegotiationError(
+      `The agent has already asked ${targetUserId} about ${input.preference}.`,
+      409,
+    )
+  }
+  if (
+    reservedNegotiationQuestions(family.state, sessionId) >=
+    maxTotalNegotiationQuestions(family.members)
+  ) {
+    throw new NegotiationError('Negotiation reached this session’s question limit.', 409)
+  }
+  const target = conflict.users.find((user) => user.userId === targetUserId)
+  if (!target || !family.members.some((member) => member.userProfile.userId === target.userId)) {
     throw new NegotiationError('Target user is not part of this family.', 400)
   }
 
@@ -452,7 +552,8 @@ async function createNegotiationRequestLocked(
     updatedAt: new Date().toISOString(),
     preference: input.preference,
     requesterUserId: input.requesterUserId,
-    ...(input.targetUserId ? { targetUserId: input.targetUserId } : {}),
+    targetUserId,
+    sessionId,
   }
   await saveFamilyRecord(env, family)
 
@@ -461,14 +562,26 @@ async function createNegotiationRequestLocked(
     if (!env.GEMINI_API_KEY) {
       throw new NegotiationError('GEMINI_API_KEY is not configured.', 503)
     }
-    action = await askGeminiForNegotiation(conflict, input.targetUserId, env.GEMINI_API_KEY)
+    action = await askGeminiForNegotiation(conflict, targetUserId, env.GEMINI_API_KEY)
   } catch (error) {
     await clearGenerationReservation(env, input.source, input.familyCode, input.idempotencyKey)
     throw error
   }
 
   if (action.action !== 'ask_user') {
-    await clearGenerationReservation(env, input.source, input.familyCode, input.idempotencyKey)
+    const latest = await loadFamilyRecord(env, input.source, input.familyCode)
+    const reservation = latest.state.idempotency[input.idempotencyKey]
+    if (
+      !reservation ||
+      reservation.requestId !== requestId ||
+      latest.state.session?.id !== sessionId ||
+      latest.state.session.status !== 'active'
+    ) {
+      throw new NegotiationError('Negotiation request reservation expired; please retry.', 409)
+    }
+    delete latest.state.idempotency[input.idempotencyKey]
+    latest.state.resolvedPreferences[input.preference] = action.action
+    await saveFamilyRecord(env, latest)
     return {
       status: 'recommended',
       action: action.action,
@@ -480,8 +593,10 @@ async function createNegotiationRequestLocked(
     await clearGenerationReservation(env, input.source, input.familyCode, input.idempotencyKey)
     throw new NegotiationError('Gemini did not produce a complete user negotiation request.', 502)
   }
-  const targetUserId = action.targetUserId
-  if (!targetUserId || !family.members.some((member) => member.userProfile.userId === targetUserId)) {
+  if (
+    action.targetUserId !== targetUserId ||
+    !family.members.some((member) => member.userProfile.userId === targetUserId)
+  ) {
     await clearGenerationReservation(env, input.source, input.familyCode, input.idempotencyKey)
     throw new NegotiationError('Gemini did not select a valid family member.', 502)
   }
@@ -495,7 +610,13 @@ async function createNegotiationRequestLocked(
   const latest = await loadFamilyRecord(env, input.source, input.familyCode)
   requireFamilyMember(latest, input.requesterUserId)
   const reservation = latest.state.idempotency[input.idempotencyKey]
-  if (!reservation || reservation.requestId !== requestId || reservation.status !== 'generating') {
+  if (
+    !reservation ||
+    reservation.requestId !== requestId ||
+    reservation.status !== 'generating' ||
+    latest.state.session?.id !== sessionId ||
+    latest.state.session.status !== 'active'
+  ) {
     throw new NegotiationError('Negotiation request reservation expired; please retry.', 409)
   }
   const latestConflicts = reconcileNegotiationState(latest.members, latest.state)
@@ -511,30 +632,22 @@ async function createNegotiationRequestLocked(
     await saveFamilyRecord(env, latest)
     throw new NegotiationError('The target user is no longer part of this conflict.', 409)
   }
-  const latestAttempt =
-    latest.state.requests.filter((item) => item.preference === input.preference).length + 1
   if (
-    latestAttempt > negotiationLimits.maxRequestsPerPreference ||
-    latest.state.requests.length +
-      Object.values(latest.state.idempotency).filter(
-        (entry) =>
-          entry.status === 'generating' &&
-          entry.requestId !== requestId,
-      ).length >=
-      maxTotalNegotiationRequests(latest.members)
+    hasAskedPreferenceOfUser(
+      latest.state,
+      input.preference,
+      targetUserId,
+      requestId,
+    ) ||
+    reservedNegotiationQuestions(latest.state, sessionId, requestId) >=
+      maxTotalNegotiationQuestions(latest.members)
   ) {
     delete latest.state.idempotency[input.idempotencyKey]
     await saveFamilyRecord(env, latest)
-    throw new NegotiationError('Negotiation request limit was reached; please retry later.', 409)
-  }
-  if (
-    latest.state.requests.some(
-      (item) => item.preference === input.preference && item.status === 'pending',
+    throw new NegotiationError(
+      'This traveler has already been asked or the session question limit was reached.',
+      409,
     )
-  ) {
-    delete latest.state.idempotency[input.idempotencyKey]
-    await saveFamilyRecord(env, latest)
-    throw new NegotiationError('A negotiation request is already pending for this preference.', 409)
   }
   const latestTarget = latest.members.find(
     (member) => member.userProfile.userId === targetUserId,
@@ -557,7 +670,8 @@ async function createNegotiationRequestLocked(
     rationale: action.rationale,
     status: 'pending',
     createdAt: new Date().toISOString(),
-    attempt: latestAttempt,
+    attempt: 1,
+    sessionId,
   }
   latest.state.requests.push(request)
   latest.state.idempotency[input.idempotencyKey] = {
@@ -567,6 +681,7 @@ async function createNegotiationRequestLocked(
     preference: input.preference,
     targetUserId,
     requesterUserId: input.requesterUserId,
+    sessionId,
   }
   await saveFamilyRecord(env, latest)
   return { status: 'created', request, conflicts: latestConflicts }
@@ -669,9 +784,20 @@ export async function automaticallyCreateNegotiationRequests(
 ): Promise<{ created: string[]; stopped: boolean }> {
   let family = await loadFamilyRecord(env, input.source, input.familyCode)
   requireFamilyMember(family, input.requesterUserId)
+  const trigger = family.state.requests.find(
+    (request) => request.requestId === input.triggerRequestId,
+  )
+  const sessionId = trigger?.sessionId
+  if (
+    !sessionId ||
+    family.state.session?.id !== sessionId ||
+    family.state.session.status !== 'active'
+  ) {
+    return { created: [], stopped: true }
+  }
   const conflicts = reconcileNegotiationState(family.members, family.state)
-  const totalLimit = maxTotalNegotiationRequests(family.members)
-  if (family.state.requests.length >= totalLimit && await stopAtRequestLimit(env, input)) {
+  const totalLimit = maxTotalNegotiationQuestions(family.members)
+  if (reservedNegotiationQuestions(family.state, sessionId) >= totalLimit) {
     return { created: [], stopped: true }
   }
 
@@ -680,64 +806,41 @@ export async function automaticallyCreateNegotiationRequests(
     family = await loadFamilyRecord(env, input.source, input.familyCode)
     requireFamilyMember(family, input.requesterUserId)
     const activeConflicts = reconcileNegotiationState(family.members, family.state)
-    if (family.state.requests.length >= totalLimit && await stopAtRequestLimit(env, input)) {
+    if (
+      family.state.session?.id !== sessionId ||
+      family.state.session.status !== 'active' ||
+      reservedNegotiationQuestions(family.state, sessionId) >= totalLimit
+    ) {
       return { created, stopped: true }
     }
     const currentConflict = activeConflicts.find(
       (item) => item.preference === conflict.preference,
     )
-    if (!currentConflict) continue
-    if (
-      currentConflict.resolution !== 'negotiate' ||
-      family.state.resolvedPreferences[currentConflict.preference] ||
-      family.state.requests.some(
-        (request) =>
-          request.preference === currentConflict.preference && request.status === 'pending',
-      ) ||
-      Object.values(family.state.idempotency).some(
-        (entry) =>
-          entry.status === 'generating' && entry.preference === currentConflict.preference,
-      )
-    ) {
+    if (!currentConflict || currentConflict.resolution !== 'negotiate') continue
+    if (family.state.resolvedPreferences[currentConflict.preference]) continue
+    if (!currentConflict.users.some((user) => user.userId === input.requesterUserId)) {
       continue
     }
+    const partner = currentConflict.users.find(
+      (user) =>
+        user.userId !== input.requesterUserId &&
+        !hasAskedPreferenceOfUser(
+          family.state,
+          currentConflict.preference,
+          user.userId,
+        ),
+    )
+    if (!partner) continue
     const idempotencyKey = `followup:${input.triggerRequestId}:${currentConflict.preference}`
     const result = await createNegotiationRequest(env, {
       source: input.source,
       familyCode: input.familyCode,
       requesterUserId: input.requesterUserId,
       preference: currentConflict.preference,
+      targetUserId: partner.userId,
       idempotencyKey,
     })
     if (result.status === 'created') created.push(result.request.requestId)
   }
   return { created, stopped: false }
-}
-
-async function stopAtRequestLimit(
-  env: Env,
-  input: {
-    source: NegotiationSource
-    familyCode: string
-    requesterUserId: string
-    triggerRequestId: string
-  },
-): Promise<boolean> {
-  return withFamilyLock(env, input.source, input.familyCode, async () => {
-    const family = await loadFamilyRecord(env, input.source, input.familyCode)
-    requireFamilyMember(family, input.requesterUserId)
-    const totalLimit = maxTotalNegotiationRequests(family.members)
-    if (family.state.requests.length < totalLimit) return false
-    const conflicts = reconcileNegotiationState(family.members, family.state)
-    for (const conflict of conflicts) {
-      if (
-        conflict.resolution === 'negotiate' &&
-        !family.state.resolvedPreferences[conflict.preference]
-      ) {
-        family.state.resolvedPreferences[conflict.preference] = 'stopped_after_limit'
-      }
-    }
-    await saveFamilyRecord(env, family)
-    return true
-  })
 }

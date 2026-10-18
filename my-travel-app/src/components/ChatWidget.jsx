@@ -3,6 +3,7 @@ import {
   createNegotiationRequest,
   getNegotiationStatus,
   respondToNegotiationRequest,
+  startNegotiationSession,
 } from "../api/chatApi";
 import "./ChatWidget.css";
 
@@ -46,6 +47,8 @@ function ChatWidget({ trip, profile }) {
 
 function ChatWidgetSession({ trip, profile }) {
   const [open, setOpen] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState("loading");
+  const [consentDismissed, setConsentDismissed] = useState(false);
   const [messages, setMessages] = useState([]);
   const [activeRequest, setActiveRequest] = useState(null);
   const [sending, setSending] = useState(false);
@@ -56,7 +59,7 @@ function ChatWidgetSession({ trip, profile }) {
   const respondingRef = useRef(false);
   const seenMessagesRef = useRef(new Set());
   const requestStatusesRef = useRef(new Map());
-  const attemptedPreferencesRef = useRef(new Set());
+  const attemptedTargetsRef = useRef(new Set());
   const familyId = trip?.familyId;
   const userId = profile?.userId;
 
@@ -68,6 +71,7 @@ function ChatWidgetSession({ trip, profile }) {
 
   const applyStatus = useCallback(
     (status) => {
+      setSessionStatus(status.sessionStatus || "awaiting_consent");
       const requests = Array.isArray(status.requests) ? status.requests : [];
       for (const request of requests) {
         const previousStatus = requestStatusesRef.current.get(request.requestId);
@@ -86,7 +90,13 @@ function ChatWidgetSession({ trip, profile }) {
         requestStatusesRef.current.set(request.requestId, request.status);
       }
 
-      const pending = requests.filter((request) => request.status === "pending");
+      const sessionRequests = status.sessionId
+        ? requests.filter((request) => request.sessionId === status.sessionId)
+        : [];
+      const pending = sessionRequests.filter(
+        (request) =>
+          request.status === "pending"
+      );
       const incoming = pending.find((request) => request.targetUserId === userId);
       if (incoming) {
         activeRequestRef.current = incoming;
@@ -120,8 +130,8 @@ function ChatWidgetSession({ trip, profile }) {
         return;
       }
 
-      if (requests.length > 0) {
-        const latest = requests[requests.length - 1];
+      if (sessionRequests.length > 0) {
+        const latest = sessionRequests[sessionRequests.length - 1];
         const response =
           latest.status === "accepted"
             ? "The last suggested change was accepted."
@@ -147,38 +157,80 @@ function ChatWidgetSession({ trip, profile }) {
       try {
         const status = await getNegotiationStatus(familyId);
         applyStatus(status);
-
-        const requests = status.requests || [];
-        if (requests.some((request) => request.status === "pending")) return;
-
-        const existingPreferences = new Set(
-          requests.map((request) => request.preference)
-        );
-        const conflict = (status.conflicts || []).find(
-          (item) =>
-            item.resolution === "negotiate" &&
-            !existingPreferences.has(item.preference) &&
-            !attemptedPreferencesRef.current.has(item.preference)
-        );
-        if (!conflict) {
-          if (
-            requests.length === 0 &&
-            attemptedPreferencesRef.current.size === 0
-          ) {
+        if (status.sessionStatus === "awaiting_consent") {
+          addAgentMessage(
+            "balancing-introduction",
+            "Would you like me to start making suggestions to balance your travel preferences?"
+          );
+          return;
+        }
+        if (status.sessionStatus === "completed" || status.balanced) {
+          addAgentMessage(
+            `balancing-complete:${status.sessionId}`,
+            "Your preferences are all balanced. I’m ending the balancing now."
+          );
+          return;
+        }
+        if (status.sessionStatus === "limit_reached" || status.questionLimitReached) {
+          addAgentMessage(
+            `question-limit-reached:${status.sessionId}`,
+            "We’ve reached the family’s question limit, so I’m ending the balancing now."
+          );
+          return;
+        }
+        if (status.sessionStatus !== "active") return;
+        for (const conflict of status.conflicts || []) {
+          if (conflict.resolution === "split") {
             addAgentMessage(
-              "waiting-for-preferences",
-              "I don’t see a negotiable conflict yet. I’ll keep checking as everyone adds or updates their preferences. You can use me before the itinerary is generated."
+              `compromise:${conflict.preference}`,
+              `For ${conflict.preference}, I’ll balance both preferences in the itinerary rather than ask anyone to change their answer.`
             );
           }
+        }
+
+        const requests = (status.requests || []).filter(
+          (request) => request.sessionId === status.sessionId
+        );
+        if (requests.some((request) => request.status === "pending")) return;
+
+        const nextQuestion = (status.conflicts || [])
+          .filter(
+            (item) =>
+              item.resolution === "negotiate" &&
+              !status.resolvedPreferences?.[item.preference]
+          )
+          .map((conflict) => {
+            if (!conflict.users?.some((user) => user.userId === userId)) return null;
+            const target = conflict.users.find((user) => {
+              if (user.userId === userId) return false;
+              const key = `${conflict.preference}:${user.userId}`;
+              return (
+                !attemptedTargetsRef.current.has(key) &&
+                !(status.requests || []).some(
+                  (request) =>
+                    request.preference === conflict.preference &&
+                    request.targetUserId === user.userId
+                )
+              );
+            });
+            return target ? { conflict, target } : null;
+          })
+          .find(Boolean);
+        if (!nextQuestion) {
+          addAgentMessage(
+            "waiting-for-other-travelers",
+            "I don’t have another eligible traveler to ask right now. I’ll check again as the group continues."
+          );
           return;
         }
 
-        startingPreference = conflict.preference;
-        attemptedPreferencesRef.current.add(startingPreference);
+        const { conflict, target } = nextQuestion;
+        startingPreference = `${conflict.preference}:${target.userId}`;
+        attemptedTargetsRef.current.add(startingPreference);
         const created = await createNegotiationRequest({
           familyId,
           preference: conflict.preference,
-          targetUserId: userId,
+          targetUserId: target.userId,
           idempotencyKey: crypto.randomUUID(),
         });
         if (created.status === "created" || created.status === "existing") {
@@ -208,7 +260,7 @@ function ChatWidgetSession({ trip, profile }) {
           startingPreference &&
           !(problem.status === 409 && /already pending/iu.test(problem.message))
         ) {
-          attemptedPreferencesRef.current.delete(startingPreference);
+          attemptedTargetsRef.current.delete(startingPreference);
         }
         if (problem.status === 409 && /already pending/iu.test(problem.message)) {
           try {
@@ -244,6 +296,36 @@ function ChatWidgetSession({ trip, profile }) {
       window.clearInterval(interval);
     };
   }, [familyId, open, syncStatus, userId]);
+
+  async function handleStartSession() {
+    if (!familyId || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const status = await startNegotiationSession(familyId);
+      attemptedTargetsRef.current.clear();
+      setConsentDismissed(false);
+      applyStatus(status);
+      addAgentMessage(
+        `session-started:${status.sessionId}`,
+        "I’ll start looking for preference suggestions now."
+      );
+      window.setTimeout(() => void syncStatus(), 0);
+    } catch (problem) {
+      setError(problem.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleDeclineSession() {
+    setConsentDismissed(true);
+    setMessages((current) => [
+      ...current,
+      { from: "me", text: "Not now" },
+      { from: "agent", text: "No problem. I’ll wait until you’re ready." },
+    ]);
+  }
 
   useEffect(() => {
     if (listRef.current) {
@@ -351,6 +433,36 @@ function ChatWidgetSession({ trip, profile }) {
               </button>
             </div>
           )}
+          {sessionStatus === "awaiting_consent" && !consentDismissed && !sending && (
+            <div className="chat-answers">
+              <button
+                type="button"
+                className="chat-yes"
+                onClick={() => void handleStartSession()}
+              >
+                Yes, start
+              </button>
+              <button
+                type="button"
+                className="chat-no"
+                onClick={handleDeclineSession}
+              >
+                Not now
+              </button>
+            </div>
+          )}
+          {(sessionStatus === "completed" || sessionStatus === "limit_reached") &&
+            !sending && (
+              <div className="chat-answers">
+                <button
+                  type="button"
+                  className="chat-yes"
+                  onClick={() => void handleStartSession()}
+                >
+                  Start a new session
+                </button>
+              </div>
+            )}
         </section>
       )}
 

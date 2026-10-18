@@ -3,6 +3,9 @@ import {
   askGeminiForNegotiation,
   detectNegotiationConflicts,
   emptyNegotiationState,
+  hasAskedPreferenceOfUser,
+  hasUnaskedNegotiationTarget,
+  maxTotalNegotiationQuestions,
   parseNegotiationMembers,
   parseNegotiationState,
   reconcileNegotiationState,
@@ -51,6 +54,166 @@ describe('travel preference negotiation', () => {
       resolution: 'accommodate',
       gap: 0.2,
     })
+  })
+
+  it('does not balance fixed two-option preferences', () => {
+    const conflicts = detectNegotiationConflicts([
+      member('u1', {
+        diningCuisine: { value: 'local', priority: 'flexible' },
+        interestedInShopping: { value: true, priority: 'flexible' },
+        luggagePreference: { value: 'backpacking', priority: 'critical' },
+        petFriendly: { value: true, priority: 'weak_link' },
+        tourPreference: { value: 'guided', priority: 'flexible' },
+      }),
+      member('u2', {
+        diningCuisine: { value: 'casual', priority: 'flexible' },
+        interestedInShopping: { value: false, priority: 'flexible' },
+        luggagePreference: { value: 'suitcases', priority: 'critical' },
+        petFriendly: { value: false, priority: 'weak_link' },
+        tourPreference: { value: 'self-guided', priority: 'flexible' },
+      }),
+    ])
+
+    expect(conflicts).toEqual([])
+  })
+
+  it('ignores null preference values while detecting conflicts', () => {
+    expect(
+      detectNegotiationConflicts([
+        member('u1', { tripPace: { value: null, priority: 'flexible' } }),
+        member('u2', { tripPace: { value: 0.9, priority: 'flexible' } }),
+      ]),
+    ).toEqual([])
+
+    expect(
+      detectNegotiationConflicts([
+        member('u1', { tripPace: { value: 0.1, priority: 'flexible' } }),
+        member('u2', { tripPace: { value: null, priority: 'flexible' } }),
+        member('u3', { tripPace: { value: 0.9, priority: 'flexible' } }),
+      ])[0]?.users.map((user) => user.userId),
+    ).toEqual(['u1', 'u3'])
+  })
+
+  it('records a preference question once per target traveler', () => {
+    const state = emptyNegotiationState()
+    state.requests.push({
+      requestId: 'request-1',
+      familyCode: '1234',
+      requesterUserId: 'u1',
+      targetUserId: 'u2',
+      targetName: 'u2',
+      preference: 'tripPace',
+      currentValue: 0.1,
+      proposedValue: 0.5,
+      question: 'Would you consider a compromise?',
+      rationale: 'Balance the group preference.',
+      status: 'rejected',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      attempt: 1,
+      sessionId: 'previous-session',
+    })
+
+    state.session = {
+      id: 'new-session',
+      status: 'active',
+      startedAt: '2026-02-01T00:00:00.000Z',
+    }
+    expect(hasAskedPreferenceOfUser(state, 'tripPace', 'u2')).toBe(true)
+    expect(hasAskedPreferenceOfUser(state, 'tripPace', 'u3')).toBe(false)
+    expect(hasAskedPreferenceOfUser(state, 'travelStyle', 'u2')).toBe(false)
+
+    const conflicts = detectNegotiationConflicts([
+      member('u1', { tripPace: { value: 0.1, priority: 'flexible' } }),
+      member('u2', { tripPace: { value: 0.5, priority: 'flexible' } }),
+      member('u3', { tripPace: { value: 0.9, priority: 'flexible' } }),
+    ])
+    expect(hasUnaskedNegotiationTarget(conflicts, state)).toBe(true)
+    state.requests.push({
+      requestId: 'request-2',
+      familyCode: '1234',
+      requesterUserId: 'u1',
+      targetUserId: 'u3',
+      targetName: 'u3',
+      preference: 'tripPace',
+      currentValue: 0.1,
+      proposedValue: 0.5,
+      question: 'Would you consider a compromise?',
+      rationale: 'Balance the group preference.',
+      status: 'rejected',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      attempt: 1,
+    })
+    expect(hasUnaskedNegotiationTarget(conflicts, state)).toBe(true)
+    state.requests.push({
+      requestId: 'request-3',
+      familyCode: '1234',
+      requesterUserId: 'u2',
+      targetUserId: 'u1',
+      targetName: 'u1',
+      preference: 'tripPace',
+      currentValue: 0.5,
+      proposedValue: 0.3,
+      question: 'Would you consider a compromise?',
+      rationale: 'Balance the group preference.',
+      status: 'rejected',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      attempt: 1,
+    })
+    expect(hasUnaskedNegotiationTarget(conflicts, state)).toBe(false)
+  })
+
+  it('caps total questions at four plus four per family member', () => {
+    expect(maxTotalNegotiationQuestions([member('u1', {})])).toBe(8)
+    expect(
+      maxTotalNegotiationQuestions([
+        member('u1', {}),
+        member('u2', {}),
+        member('u3', {}),
+      ]),
+    ).toBe(16)
+  })
+
+  it('does not suppress later unasked pairs for a preference', () => {
+    const state = emptyNegotiationState()
+    state.requests.push(
+      ...[
+        ['tripPace', 'rejected'],
+        ['travelStyle', 'accepted'],
+        ['activityPopularity', 'superseded'],
+      ].map(([preference, status], index) => ({
+        requestId: `request-${index}`,
+        familyCode: '1234',
+        requesterUserId: 'u1',
+        targetUserId: 'u2',
+        targetName: 'u2',
+        preference,
+        currentValue: 0.1,
+        proposedValue: 0.5,
+        question: 'Would you consider a compromise?',
+        rationale: 'Balance the group preference.',
+        status: status as 'rejected' | 'accepted' | 'superseded',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        attempt: 1,
+      })),
+    )
+
+    reconcileNegotiationState(
+      [
+        member('u1', {
+          tripPace: { value: 0.1, priority: 'flexible' },
+          travelStyle: { value: 0.1, priority: 'flexible' },
+          activityPopularity: { value: 0.1, priority: 'flexible' },
+        }),
+        member('u2', {
+          tripPace: { value: 0.9, priority: 'flexible' },
+          travelStyle: { value: 0.9, priority: 'flexible' },
+          activityPopularity: { value: 0.9, priority: 'flexible' },
+        }),
+      ],
+      state,
+    )
+
+    expect(state.resolvedPreferences).toEqual({})
   })
 
   it('does not report equal or single-member values as conflicts', () => {
