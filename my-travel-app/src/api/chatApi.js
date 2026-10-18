@@ -1,6 +1,6 @@
 import { USE_REAL_BACKEND, API_BASE_URL } from "./config";
 
-const USE_SAMPLE_CHAT = true;
+const USE_SAMPLE_CHAT = false;
 
 const SAMPLE_QUESTIONS = [
   "Hi! Quick question: should I plan a relaxed morning on day 2?",
