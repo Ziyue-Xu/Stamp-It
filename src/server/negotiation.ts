@@ -101,16 +101,11 @@ export class NegotiationError extends Error {
 }
 
 const GEMINI_TIMEOUT_MS = 20_000
+const MAX_REQUESTS_PER_PREFERENCE = 2
 const BASE_TOTAL_REQUESTS = 4
+const REQUESTS_PER_FAMILY_MEMBER = 4
 const QUESTIONS_PER_FAMILY_MEMBER = 4
 const NON_NEGOTIABLE = new Set(['dietaryRestrictions', 'luggagePreference'])
-const TWO_OPTION_PREFERENCES = new Set([
-  'diningCuisine',
-  'interestedInShopping',
-  'luggagePreference',
-  'petFriendly',
-  'tourPreference',
-])
 const NUMERIC_THRESHOLDS: Record<string, number> = {
   tripPace: 0.2,
   travelStyle: 0.2,
@@ -176,6 +171,7 @@ export function parseNegotiationState(value: unknown): NegotiationState {
       typeof request.attempt !== 'number' ||
       !Number.isInteger(request.attempt) ||
       request.attempt < 1 ||
+      (request.sessionId !== undefined && typeof request.sessionId !== 'string') ||
       !['pending', 'accepted', 'rejected', 'superseded'].includes(String(request.status))
     ) {
       throw new Error('Stored negotiation state contains an invalid request.')
@@ -203,33 +199,23 @@ export function parseNegotiationState(value: unknown): NegotiationState {
       throw new Error('Stored negotiation state contains an invalid idempotency entry.')
     }
   }
-  let session: NegotiationSession | null = null
-  if (value.session !== undefined && value.session !== null) {
-    const sessionValue = value.session
-    if (
-      !isRecord(sessionValue) ||
-      typeof sessionValue.id !== 'string' ||
-      !sessionValue.id ||
-      typeof sessionValue.startedAt !== 'string' ||
-      !Number.isFinite(Date.parse(sessionValue.startedAt)) ||
-      (sessionValue.status !== 'active' &&
-        sessionValue.status !== 'completed' &&
-        sessionValue.status !== 'limit_reached')
-    ) {
-      throw new Error('Stored negotiation state contains an invalid session.')
-    }
-    session = {
-      id: sessionValue.id,
-      status: sessionValue.status,
-      startedAt: sessionValue.startedAt,
-    }
+  const session = value.session
+  if (
+    session !== undefined &&
+    session !== null &&
+    (!isRecord(session) ||
+      typeof session.id !== 'string' ||
+      typeof session.startedAt !== 'string' ||
+      !['active', 'completed', 'limit_reached'].includes(String(session.status)))
+  ) {
+    throw new Error('Stored negotiation state contains an invalid session.')
   }
   return {
     requests: requests as NegotiationRequest[],
     negotiatedValues: value.negotiatedValues as Record<string, Record<string, unknown>>,
     resolvedPreferences: value.resolvedPreferences as Record<string, string>,
     idempotency: idempotency as NegotiationState['idempotency'],
-    session,
+    session: (session ?? null) as NegotiationSession | null,
   }
 }
 
@@ -266,11 +252,7 @@ function preferenceEntries(
   const entries: NegotiationParticipant[] = []
   for (const member of members) {
     const rawPreference = member.userTravelProfile[key]
-    if (
-      !isRecord(rawPreference) ||
-      !Object.hasOwn(rawPreference, 'value') ||
-      rawPreference.value === null
-    ) continue
+    if (!isRecord(rawPreference) || !Object.hasOwn(rawPreference, 'value')) continue
     entries.push({
       userId: member.userProfile.userId,
       name: member.userProfile.name,
@@ -298,7 +280,6 @@ export function detectNegotiationConflicts(
   const keys = [...new Set(members.flatMap((member) => Object.keys(member.userTravelProfile)))].sort()
   const conflicts: NegotiationConflict[] = []
   for (const key of keys) {
-    if (TWO_OPTION_PREFERENCES.has(key)) continue
     const users = preferenceEntries(members, key)
     const values = users.map((entry) => entry.value)
     if (users.length < 2 || new Set(values.map(canonicalJson)).size < 2) continue
@@ -318,7 +299,7 @@ export function detectNegotiationConflicts(
       const numericValues = values as number[]
       gap = Math.max(...numericValues) - Math.min(...numericValues)
       resolution = gap > (NUMERIC_THRESHOLDS[key] ?? 0) ? 'negotiate' : 'accommodate'
-    } else if (key === 'morningRoutine') {
+    } else if (key === 'morningRoutine' || key === 'interestedInShopping') {
       resolution = 'split'
     } else if (priority !== 'critical') {
       resolution = 'negotiate'
@@ -335,6 +316,10 @@ export function detectNegotiationConflicts(
   return conflicts
 }
 
+export function maxTotalNegotiationRequests(members: NegotiationMember[]): number {
+  return BASE_TOTAL_REQUESTS + REQUESTS_PER_FAMILY_MEMBER * members.length
+}
+
 export function maxTotalNegotiationQuestions(members: NegotiationMember[]): number {
   return BASE_TOTAL_REQUESTS + QUESTIONS_PER_FAMILY_MEMBER * members.length
 }
@@ -349,7 +334,8 @@ export function hasAskedPreferenceOfUser(
     state.requests.some(
       (request) =>
         request.preference === preference &&
-        request.targetUserId === targetUserId,
+        request.targetUserId === targetUserId &&
+        request.requestId !== excludeRequestId,
     ) ||
     Object.values(state.idempotency).some(
       (entry) =>
@@ -365,12 +351,11 @@ export function hasUnaskedNegotiationTarget(
   state: NegotiationState,
 ): boolean {
   return conflicts.some((conflict) => {
-    if (
-      conflict.resolution !== 'negotiate' ||
-      state.resolvedPreferences[conflict.preference]
-    ) return false
-    return conflict.users.some((target) =>
-      !hasAskedPreferenceOfUser(state, conflict.preference, target.userId),
+    if (conflict.resolution !== 'negotiate' || state.resolvedPreferences[conflict.preference]) {
+      return false
+    }
+    return conflict.users.some(
+      (target) => !hasAskedPreferenceOfUser(state, conflict.preference, target.userId),
     )
   })
 }
@@ -381,34 +366,27 @@ export function reconcileNegotiationState(
 ): NegotiationConflict[] {
   const conflicts = detectNegotiationConflicts(members)
   const activePreferences = new Set(conflicts.map((conflict) => conflict.preference))
-  for (const [preference, resolution] of Object.entries(state.resolvedPreferences)) {
-    if (resolution === 'already_asked') delete state.resolvedPreferences[preference]
-  }
   for (const preference of Object.keys(state.resolvedPreferences)) {
     if (!activePreferences.has(preference)) delete state.resolvedPreferences[preference]
   }
   for (const request of state.requests) {
-    const conflict = conflicts.find((item) => item.preference === request.preference)
-    if (
-      request.status === 'pending' &&
-      (!conflict || conflict.resolution !== 'negotiate')
-    ) {
+    if (request.status === 'pending' && !activePreferences.has(request.preference)) {
       request.status = 'superseded'
     }
   }
   for (const conflict of conflicts) {
-    if (
-      conflict.resolution === 'negotiate' &&
-      ['accommodate', 'split'].includes(
-        state.resolvedPreferences[conflict.preference],
-      )
-    ) {
-      delete state.resolvedPreferences[conflict.preference]
-    }
+    const attempts = state.requests.filter(
+      (request) => request.preference === conflict.preference,
+    )
     if (conflict.resolution === 'accommodate') {
       state.resolvedPreferences[conflict.preference] = 'accommodate'
     } else if (conflict.resolution === 'split') {
       state.resolvedPreferences[conflict.preference] = 'split'
+    } else if (
+      attempts.length >= MAX_REQUESTS_PER_PREFERENCE &&
+      !attempts.some((request) => request.status === 'pending')
+    ) {
+      state.resolvedPreferences[conflict.preference] = 'stopped_after_limit'
     }
   }
   return conflicts
@@ -592,5 +570,6 @@ export async function askGeminiForNegotiation(
 }
 
 export const negotiationLimits = {
+  maxRequestsPerPreference: MAX_REQUESTS_PER_PREFERENCE,
   nonNegotiable: NON_NEGOTIABLE,
 }

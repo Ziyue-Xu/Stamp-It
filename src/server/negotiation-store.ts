@@ -533,6 +533,25 @@ async function createNegotiationRequestLocked(
     )
   }
   if (
+    family.state.requests.some(
+      (request) => request.preference === input.preference && request.status === 'pending',
+    ) ||
+    Object.values(family.state.idempotency).some(
+      (entry) =>
+        entry.status === 'generating' && entry.preference === input.preference,
+    )
+  ) {
+    throw new NegotiationError('A negotiation request is already pending for this preference.', 409)
+  }
+  const attempt =
+    family.state.requests.filter((request) => request.preference === input.preference).length + 1
+  if (attempt > negotiationLimits.maxRequestsPerPreference) {
+    throw new NegotiationError(
+      `Negotiation stopped for ${input.preference} after ${negotiationLimits.maxRequestsPerPreference} requests.`,
+      409,
+    )
+  }
+  if (
     reservedNegotiationQuestions(family.state, sessionId) >=
     maxTotalNegotiationQuestions(family.members)
   ) {
@@ -630,12 +649,24 @@ async function createNegotiationRequestLocked(
     await saveFamilyRecord(env, latest)
     throw new NegotiationError('The target user is no longer part of this conflict.', 409)
   }
+  const latestAttempt =
+    latest.state.requests.filter((item) => item.preference === input.preference).length + 1
   if (
+    latestAttempt > negotiationLimits.maxRequestsPerPreference ||
     hasAskedPreferenceOfUser(
       latest.state,
       input.preference,
       targetUserId,
       requestId,
+    ) ||
+    latest.state.requests.some(
+      (item) => item.preference === input.preference && item.status === 'pending',
+    ) ||
+    Object.values(latest.state.idempotency).some(
+      (entry) =>
+        entry.status === 'generating' &&
+        entry.preference === input.preference &&
+        entry.requestId !== requestId,
     ) ||
     reservedNegotiationQuestions(latest.state, sessionId, requestId) >=
       maxTotalNegotiationQuestions(latest.members)
@@ -668,7 +699,7 @@ async function createNegotiationRequestLocked(
     rationale: action.rationale,
     status: 'pending',
     createdAt: new Date().toISOString(),
-    attempt: 1,
+    attempt: latestAttempt,
     sessionId,
   }
   latest.state.requests.push(request)

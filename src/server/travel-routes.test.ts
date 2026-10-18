@@ -1863,7 +1863,7 @@ describe('Auth0 travel routes', () => {
       },
       {
         status: 'pending',
-        attempt: 1,
+        attempt: 2,
         requesterUserId: memberId,
         targetUserId: creatorId,
         preference: 'tripPace',

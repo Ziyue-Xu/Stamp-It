@@ -181,9 +181,7 @@ record. The caller cannot supply the responder identity. Analysis and request
 history are visible to family members; only the requested member can accept or
 reject a request. Accepted values and request status are saved together on that
 family record. Dietary restrictions and luggage requirements are never changed
-by negotiation. Preferences with only two choices (cuisine, shopping, luggage,
-pets, and tour style) are not balanced by the agent. Null preference values
-are treated as no restriction and ignored during conflict detection.
+by negotiation.
 
 The live travel records and uploaded preference records are intentionally
 independent, even when their family codes happen to match:
@@ -192,29 +190,20 @@ independent, even when their family codes happen to match:
 | --- | --- | --- |
 | Analyze conflicts | `GET /travel/families/:familyCode/negotiations/analyze` | `GET /api/preference-families/:familyCode/negotiations/analyze` |
 | Read requests/status | `GET /travel/families/:familyCode/negotiations/status` | `GET /api/preference-families/:familyCode/negotiations/status` |
-| Start or restart a session | `POST /travel/families/:familyCode/negotiations/start` | `POST /api/preference-families/:familyCode/negotiations/start` |
 | Create a request | `POST /travel/families/:familyCode/negotiations/requests` | `POST /api/preference-families/:familyCode/negotiations/requests` |
 | Respond | `POST /travel/families/:familyCode/negotiations/:requestId/respond` | `POST /api/preference-families/:familyCode/negotiations/:requestId/respond` |
 
 Create-request calls send `preference`, optionally `targetUserId`, and a
 unique `Idempotency-Key` header. Response calls send `answer` (`accept` or
 `reject`) and optionally a short `note`; they must also be same-origin POSTs.
-The same-origin `start` endpoint begins a new session; request creation is
-rejected until a family member explicitly starts one. Follow-up requests are
-queued when a response leaves negotiable conflicts.
+Follow-up requests are queued when a response leaves negotiable conflicts.
 
-The Travel Together chat bubble asks for consent before it starts making
-suggestions. Only a Yes starts a balancing session; No leaves the session
-unstarted. Only the targeted member can answer Yes or No to a preference
-suggestion. While open, the bubble refreshes negotiation status and displays
-responses and follow-up questions. A preference can be asked of each traveler
-at most once across sessions, while other travelers may still receive that
-preference question. Each session has a hard limit of
-`4 + 4 × family member count` questions. Once preferences are balanced or that
-limit is reached, the chat offers to start a new session. Starting again resets
-the session question count and round-only resolution markers while preserving
-saved traveler preferences, accepted changes, and the full question history.
-No itinerary is needed for this flow.
+The Travel Together chat bubble uses these live-family endpoints: it checks
+for pending questions when opened, starts the first negotiable conflict when
+there is no negotiation history, and displays the target member's question
+with the proposed preference change. Only that member can answer Yes or No.
+While open, the bubble refreshes negotiation status and shows responses and
+follow-up questions as they arrive. No itinerary is needed for this flow.
 Editing preferences sends only changed answers, and the server merges those
 answers into the saved profile under the same family lock as negotiations, so
 unmodified preferences and an accepted agent proposal are retained.
