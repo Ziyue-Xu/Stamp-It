@@ -130,7 +130,7 @@ function SignUpScreen({ onSave, onBack, familyCode, mode = "signup" }) {
         <div className="signup-step">STEP 2 OF 2</div>
         <h1>Check your email</h1>
         <p className="profile-sub">
-          We sent a 4-digit code to <strong>{trimmedEmail}</strong>. It expires in 5 minutes.
+          We sent a 4-digit code to <strong>{trimmedEmail}</strong>. It expires in 5 minutes. <strong>Be sure to check your spam!</strong>
         </p>
 
 
